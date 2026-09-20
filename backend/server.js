@@ -13,8 +13,32 @@ connectDB();
 
 const app = express();
 
-// Enable Cross-Origin Resource Sharing
-app.use(cors());
+// Enable Cross-Origin Resource Sharing with Netlify and Local Support
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
+  : [];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Automatically allow Vercel and Netlify deployment URLs and local environments
+    if (
+      /^https:\/\/[a-zA-Z0-9_.-]+\.vercel\.app$/.test(origin) ||
+      /^https:\/\/[a-zA-Z0-9_.-]+\.netlify\.app$/.test(origin) ||
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    // Permissive fallback so frontend requests are not blocked
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Body Parser Middleware
 app.use(express.json());

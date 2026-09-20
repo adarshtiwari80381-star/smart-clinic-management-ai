@@ -8,7 +8,32 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'http://localhost:5000/api';
+  /**
+   * Resolves the active API base URL via config.js, env.js, head bootstrap, or production fallback
+   */
+  function getApiBase() {
+    if (window.APP_CONFIG && typeof window.APP_CONFIG.getApiBase === 'function') {
+      return window.APP_CONFIG.getApiBase();
+    }
+    if (window.__MEDIFLOW_API_BASE__) {
+      return window.__MEDIFLOW_API_BASE__;
+    }
+    // Strict production fallback: If running on Vercel or any remote domain, never use localhost
+    const isLocal = (
+      window.location.protocol === 'file:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '0.0.0.0' ||
+      window.location.hostname.endsWith('.local')
+    );
+    if (!isLocal) {
+      const injected = (window.__ENV__ && (window.__ENV__.API_URL || window.__ENV__.VITE_API_URL))
+        ? (window.__ENV__.API_URL || window.__ENV__.VITE_API_URL).trim().replace(/\/+$/, '')
+        : 'https://smart-clinic-ai-backend.onrender.com';
+      return injected.endsWith('/api') ? injected : `${injected}/api`;
+    }
+    return 'http://localhost:5000/api';
+  }
 
   // Global State
   const state = {
@@ -22,10 +47,11 @@
   };
 
   // ==========================================================================
-  // API HELPER (Fetch with Auth Token & Offline Handling)
+  // API HELPER (Fetch with Auth Token, RBAC & Comprehensive Error Handling)
   // ==========================================================================
   async function apiFetch(endpoint, options = {}) {
-    const url = `${API_BASE}${endpoint}`;
+    const apiBase = getApiBase();
+    const url = `${apiBase}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
@@ -38,11 +64,28 @@
 
       if (!res.ok) {
         // Handle 401 Unauthorized
-        if (res.status === 401 && !endpoint.includes('/auth/login')) {
-          logoutUser(false);
-          showToast('Session expired or unauthorized. Please sign in.', 'error');
-          openModal('modalAuth');
+        if (res.status === 401) {
+          if (!endpoint.includes('/auth/login')) {
+            logoutUser(false);
+            showToast('Session expired or unauthorized. Please sign in.', 'error');
+            openModal('modalAuth');
+          }
+        } else if (res.status === 403) {
+          showToast(data.message || 'Access denied: You do not have permission for this action.', 'error');
+        } else if (res.status === 404) {
+          showToast(data.message || 'The requested resource was not found.', 'error');
+        } else if (res.status === 409) {
+          // Appointment conflict or data duplication
+          showToast(data.message || 'Doctor is not available at this time.', 'error');
+          const conflictAlert = document.getElementById('appointmentConflictAlert');
+          if (conflictAlert) {
+            conflictAlert.innerText = '⚠️ ' + (data.message || 'Doctor is not available at this time.');
+            conflictAlert.classList.add('show');
+          }
+        } else if (res.status >= 500) {
+          showToast(data.message || 'Server encountered an internal error. Please try again.', 'error');
         }
+
         const error = new Error(data.message || `HTTP ${res.status}`);
         error.status = res.status;
         error.data = data;
@@ -57,8 +100,20 @@
         const dot = document.getElementById('apiStatusDot');
         const text = document.getElementById('apiStatusText');
         if (dot) dot.className = 'status-dot disconnected';
-        if (text) text.innerText = 'Backend Offline (Port 5000)';
-        showToast('Backend server is offline. Please ensure Node server is running on http://localhost:5000.', 'error');
+        const isLocal = (
+          window.location.protocol === 'file:' ||
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.hostname === '0.0.0.0' ||
+          window.location.hostname.endsWith('.local')
+        );
+        if (isLocal) {
+          if (text) text.innerText = 'Backend Offline (Port 5000)';
+          showToast('Backend server is offline. Please ensure Node server is running on http://localhost:5000.', 'error');
+        } else {
+          if (text) text.innerText = 'Render Cloud Connecting / Offline';
+          showToast('Live backend (Render) is unreachable. If Render is waking up from sleep (~30-50s), please wait a moment and retry.', 'error');
+        }
       }
       throw err;
     }
@@ -68,17 +123,103 @@
   async function checkBackendHealth() {
     const dot = document.getElementById('apiStatusDot');
     const text = document.getElementById('apiStatusText');
+    const apiBase = getApiBase();
     try {
-      const res = await fetch(`${API_BASE}/health`);
+      const res = await fetch(`${apiBase}/health`, { cache: 'no-store' });
       if (res.ok) {
-        dot.className = 'status-dot';
-        text.innerText = 'Backend Connected (Port 5000)';
+        if (dot) dot.className = 'status-dot';
+        const isRender = apiBase.includes('onrender.com');
+        if (text) text.innerText = isRender ? 'Backend Online (Render Cloud)' : 'Backend Connected (Local Port 5000)';
+        updateSettingsApiUI(true);
       } else {
         throw new Error('Offline');
       }
     } catch (e) {
-      dot.className = 'status-dot disconnected';
-      text.innerText = 'Backend Offline (Check server)';
+      if (dot) dot.className = 'status-dot disconnected';
+      const isRender = apiBase.includes('onrender.com');
+      if (text) text.innerText = isRender ? 'Render Waking / Offline' : 'Backend Offline (Port 5000)';
+      updateSettingsApiUI(false);
+    }
+  }
+
+  // Settings API Helpers
+  function updateSettingsApiUI(isOnline = null) {
+    const targetSpan = document.getElementById('settingsApiTarget');
+    const badge = document.getElementById('settingsApiStatusBadge');
+    const input = document.getElementById('settingCustomApiUrl');
+    const currentBase = getApiBase();
+
+    if (targetSpan) targetSpan.innerText = currentBase;
+    if (input && !input.value) input.value = currentBase;
+
+    if (badge && isOnline !== null) {
+      if (isOnline) {
+        badge.className = 'status-badge live';
+        badge.innerText = 'ONLINE (200 OK)';
+      } else {
+        badge.className = 'status-badge offline';
+        badge.innerText = 'OFFLINE / UNREACHABLE';
+      }
+    }
+  }
+
+  function saveCustomApiUrl() {
+    const input = document.getElementById('settingCustomApiUrl');
+    if (!input || !input.value.trim()) {
+      showToast('Please enter a valid API URL', 'error');
+      return;
+    }
+    if (window.APP_CONFIG && window.APP_CONFIG.setCustomApiBase) {
+      window.APP_CONFIG.setCustomApiBase(input.value.trim());
+      showToast(`API URL updated to: ${getApiBase()}`, 'success');
+      updateSettingsApiUI();
+      checkBackendHealth();
+      refreshAllData();
+    }
+  }
+
+  function switchToRender() {
+    if (window.APP_CONFIG && window.APP_CONFIG.setApiMode) {
+      window.APP_CONFIG.setApiMode('render');
+      const input = document.getElementById('settingCustomApiUrl');
+      if (input) input.value = `${window.APP_CONFIG.PRODUCTION_RENDER_URL}/api`;
+      showToast('Switched to Production Render Backend', 'info');
+      updateSettingsApiUI();
+      checkBackendHealth();
+      refreshAllData();
+    }
+  }
+
+  function switchToLocal() {
+    if (window.APP_CONFIG && window.APP_CONFIG.setApiMode) {
+      window.APP_CONFIG.setApiMode('local');
+      const input = document.getElementById('settingCustomApiUrl');
+      if (input) input.value = `${window.APP_CONFIG.LOCAL_DEV_URL}/api`;
+      showToast('Switched to Local Development Backend (Port 5000)', 'info');
+      updateSettingsApiUI();
+      checkBackendHealth();
+      refreshAllData();
+    }
+  }
+
+  async function testApiConnection() {
+    const apiBase = getApiBase();
+    showToast(`Testing connection to ${apiBase}/health...`, 'info');
+    const startTime = performance.now();
+    try {
+      const res = await fetch(`${apiBase}/health`, { cache: 'no-store' });
+      const latency = Math.round(performance.now() - startTime);
+      if (res.ok) {
+        const data = await res.json();
+        showToast(`Backend Online! Status: ${data.status} (${latency}ms)`, 'success');
+        updateSettingsApiUI(true);
+      } else {
+        showToast(`Backend responded with HTTP ${res.status}`, 'error');
+        updateSettingsApiUI(false);
+      }
+    } catch (err) {
+      showToast(`Connection failed: ${err.message}`, 'error');
+      updateSettingsApiUI(false);
     }
   }
 
@@ -1286,6 +1427,10 @@
   // INITIALIZATION
   // ==========================================================================
   window.addEventListener('DOMContentLoaded', () => {
+    // Initial health check and settings UI update
+    checkBackendHealth();
+    updateSettingsApiUI();
+
     // If no user session, default to admin demo session for instant college demonstration
     if (!state.currentUser) {
       quickLogin('admin@smartclinic.com', 'admin123');
@@ -1329,7 +1474,11 @@
     quickBookPatient,
     onDoctorSelected,
     toggleMobileSidebar,
-    saveClinicSettings
+    saveClinicSettings,
+    saveCustomApiUrl,
+    switchToRender,
+    switchToLocal,
+    testApiConnection
   };
 
 })();
