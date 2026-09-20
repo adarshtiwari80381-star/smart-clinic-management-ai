@@ -1,0 +1,350 @@
+{
+  "users": [
+    {
+      "_id": "60d0fe4f5311236168a109a0",
+      "name": "SmartClinic Admin",
+      "email": "admin@smartclinic.com",
+      "passwordPlain": "admin123",
+      "role": "Admin",
+      "phone": "+1 (555) 019-9000"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109b0",
+      "name": "Dr. Sarah Jenkins",
+      "email": "doctor@smartclinic.com",
+      "passwordPlain": "doctor123",
+      "role": "Doctor",
+      "phone": "+1 (555) 019-4421",
+      "doctorId": "60d0fe4f5311236168a109d1"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109c0",
+      "name": "John Doe",
+      "email": "patient@smartclinic.com",
+      "passwordPlain": "patient123",
+      "role": "Patient",
+      "phone": "+1 (555) 019-9944",
+      "patientId": "60d0fe4f5311236168a109e1"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109ca",
+      "name": "Clinic Administrator",
+      "email": "admin@clinic.com",
+      "passwordPlain": "admin123",
+      "role": "Admin",
+      "phone": "+1 (555) 019-2831"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109cb",
+      "name": "Dr. Sarah Jenkins",
+      "email": "dr.sarah@clinic.com",
+      "passwordPlain": "doctor123",
+      "role": "Doctor",
+      "phone": "+1 (555) 019-4421",
+      "doctorId": "60d0fe4f5311236168a109d1"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109cc",
+      "name": "Dr. Robert Chen",
+      "email": "dr.robert@clinic.com",
+      "passwordPlain": "doctor123",
+      "role": "Doctor",
+      "phone": "+1 (555) 019-7732",
+      "doctorId": "60d0fe4f5311236168a109d2"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109cd",
+      "name": "Dr. Priya Sharma",
+      "email": "dr.priya@clinic.com",
+      "passwordPlain": "doctor123",
+      "role": "Doctor",
+      "phone": "+1 (555) 019-3389",
+      "doctorId": "60d0fe4f5311236168a109d3"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109ce",
+      "name": "John Doe",
+      "email": "john.doe@patient.com",
+      "passwordPlain": "patient123",
+      "role": "Patient",
+      "phone": "+1 (555) 019-9944",
+      "patientId": "60d0fe4f5311236168a109e1"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109cf",
+      "name": "Emily Watson",
+      "email": "emily.watson@patient.com",
+      "passwordPlain": "patient123",
+      "role": "Patient",
+      "phone": "+1 (555) 019-8812",
+      "patientId": "60d0fe4f5311236168a109e2"
+    }
+  ],
+  "doctors": [
+    {
+      "_id": "60d0fe4f5311236168a109d1",
+      "userId": "60d0fe4f5311236168a109cb",
+      "name": "Dr. Sarah Jenkins",
+      "specialization": "Cardiology",
+      "qualifications": "MD, FACC - Harvard Medical School",
+      "experienceYears": 12,
+      "email": "dr.sarah@clinic.com",
+      "phone": "+1 (555) 019-4421",
+      "consultationFee": 120,
+      "roomNumber": "Room 201 - West Wing",
+      "availableDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "availableTimeSlots": ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00"],
+      "status": "Active"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109d2",
+      "userId": "60d0fe4f5311236168a109cc",
+      "name": "Dr. Robert Chen",
+      "specialization": "Pediatrics",
+      "qualifications": "MBBS, MD Pediatrics - Johns Hopkins",
+      "experienceYears": 9,
+      "email": "dr.robert@clinic.com",
+      "phone": "+1 (555) 019-7732",
+      "consultationFee": 95,
+      "roomNumber": "Room 104 - Children Care Wing",
+      "availableDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      "availableTimeSlots": ["10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00", "16:00"],
+      "status": "Active"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109d3",
+      "userId": "60d0fe4f5311236168a109cd",
+      "name": "Dr. Priya Sharma",
+      "specialization": "Dermatology",
+      "qualifications": "MD Dermatology, DVD - AIIMS New Delhi",
+      "experienceYears": 11,
+      "email": "dr.priya@clinic.com",
+      "phone": "+1 (555) 019-3389",
+      "consultationFee": 110,
+      "roomNumber": "Room 305 - Specialty Clinic",
+      "availableDays": ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      "availableTimeSlots": ["11:00", "11:30", "12:00", "14:30", "15:00", "15:30", "16:30", "17:00"],
+      "status": "Active"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109d4",
+      "name": "Dr. James Wilson",
+      "specialization": "General Medicine",
+      "qualifications": "MBBS, MD Internal Medicine - Stanford",
+      "experienceYears": 16,
+      "email": "dr.james@clinic.com",
+      "phone": "+1 (555) 019-5511",
+      "consultationFee": 85,
+      "roomNumber": "Room 101 - Primary Outpatient",
+      "availableDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "availableTimeSlots": ["08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "13:30", "14:00", "14:30"],
+      "status": "Active"
+    }
+  ],
+  "patients": [
+    {
+      "_id": "60d0fe4f5311236168a109e1",
+      "userId": "60d0fe4f5311236168a109ce",
+      "name": "John Doe",
+      "email": "john.doe@patient.com",
+      "phone": "+1 (555) 019-9944",
+      "gender": "Male",
+      "dateOfBirth": "1989-04-14",
+      "age": 35,
+      "bloodGroup": "O+",
+      "address": "742 Evergreen Terrace, Springfield",
+      "emergencyContact": {
+        "name": "Mary Doe",
+        "relationship": "Spouse",
+        "phone": "+1 (555) 019-9945"
+      },
+      "allergies": ["Penicillin", "Peanuts"],
+      "medicalHistory": ["Hypertension (Grade 1)", "Mild Astigmatism"]
+    },
+    {
+      "_id": "60d0fe4f5311236168a109e2",
+      "userId": "60d0fe4f5311236168a109cf",
+      "name": "Emily Watson",
+      "email": "emily.watson@patient.com",
+      "phone": "+1 (555) 019-8812",
+      "gender": "Female",
+      "dateOfBirth": "1996-08-22",
+      "age": 28,
+      "bloodGroup": "A+",
+      "address": "12 Baker Street, Apt 4B, Metro City",
+      "emergencyContact": {
+        "name": "David Watson",
+        "relationship": "Father",
+        "phone": "+1 (555) 019-8813"
+      },
+      "allergies": ["None"],
+      "medicalHistory": ["Mild Seasonal Asthma", "Cervical Spondylosis"]
+    },
+    {
+      "_id": "60d0fe4f5311236168a109e3",
+      "name": "Carlos Rodriguez",
+      "email": "carlos.rodriguez@example.com",
+      "phone": "+1 (555) 019-7123",
+      "gender": "Male",
+      "dateOfBirth": "1972-11-03",
+      "age": 52,
+      "bloodGroup": "B+",
+      "address": "456 Oak Avenue, West Heights",
+      "emergencyContact": {
+        "name": "Elena Rodriguez",
+        "relationship": "Daughter",
+        "phone": "+1 (555) 019-7124"
+      },
+      "allergies": ["Sulfa Drugs", "Aspirin"],
+      "medicalHistory": ["Type 2 Diabetes Mellitus", "Hyperlipidemia"]
+    },
+    {
+      "_id": "60d0fe4f5311236168a109e4",
+      "name": "Ananya Patel",
+      "email": "ananya.patel@example.com",
+      "phone": "+1 (555) 019-6234",
+      "gender": "Female",
+      "dateOfBirth": "1983-02-17",
+      "age": 41,
+      "bloodGroup": "AB+",
+      "address": "88 Maple Drive, North Hills",
+      "emergencyContact": {
+        "name": "Rajesh Patel",
+        "relationship": "Spouse",
+        "phone": "+1 (555) 019-6235"
+      },
+      "allergies": ["Shellfish"],
+      "medicalHistory": ["Chronic Migraine", "Vitamin D Deficiency"]
+    }
+  ],
+  "appointments": [
+    {
+      "_id": "60d0fe4f5311236168a109f1",
+      "patient": "60d0fe4f5311236168a109e1",
+      "doctor": "60d0fe4f5311236168a109d1",
+      "appointmentDate": "2026-09-25",
+      "appointmentTime": "10:00",
+      "reason": "Quarterly cardiology review and blood pressure assessment",
+      "type": "Consultation",
+      "status": "Scheduled",
+      "notes": "Patient requested blood pressure medication adjustment check."
+    },
+    {
+      "_id": "60d0fe4f5311236168a109f2",
+      "patient": "60d0fe4f5311236168a109e2",
+      "doctor": "60d0fe4f5311236168a109d3",
+      "appointmentDate": "2026-09-25",
+      "appointmentTime": "11:30",
+      "reason": "Persistent skin rash and allergy consultation",
+      "type": "Consultation",
+      "status": "Confirmed",
+      "notes": "Symptoms emerged after new cosmetic cream application."
+    },
+    {
+      "_id": "60d0fe4f5311236168a109f3",
+      "patient": "60d0fe4f5311236168a109e3",
+      "doctor": "60d0fe4f5311236168a109d4",
+      "appointmentDate": "2026-09-26",
+      "appointmentTime": "09:30",
+      "reason": "Routine diabetic blood glucose & HbA1c screening",
+      "type": "Routine Checkup",
+      "status": "Scheduled",
+      "notes": "Fasting blood sugar test ordered before consultation."
+    },
+    {
+      "_id": "60d0fe4f5311236168a109f4",
+      "patient": "60d0fe4f5311236168a109e1",
+      "doctor": "60d0fe4f5311236168a109d1",
+      "appointmentDate": "2026-09-10",
+      "appointmentTime": "10:00",
+      "reason": "Initial cardiac assessment after mild chest tightness",
+      "type": "Consultation",
+      "status": "Completed",
+      "notes": "ECG performed, normal sinus rhythm. Advised lifestyle adjustments."
+    }
+  ],
+  "medicalRecords": [
+    {
+      "_id": "60d0fe4f5311236168a109a1",
+      "patient": "60d0fe4f5311236168a109e1",
+      "doctor": "60d0fe4f5311236168a109d1",
+      "appointment": "60d0fe4f5311236168a109f4",
+      "visitDate": "2026-09-10",
+      "symptoms": ["Mild exertional chest tightness", "Occasional palpitations", "Work-related stress"],
+      "diagnosis": "Essential Hypertension (Stage 1) - Stress exacerbated",
+      "vitals": {
+        "bloodPressure": "138/88 mmHg",
+        "heartRate": "78 bpm",
+        "temperature": "98.4 F",
+        "weight": "74 kg",
+        "oxygenLevel": "99%"
+      },
+      "prescriptions": [
+        {
+          "medicineName": "Amlodipine Besylate",
+          "dosage": "5 mg",
+          "frequency": "Once daily (Morning)",
+          "duration": "30 days",
+          "instructions": "Take after breakfast with water. Avoid grapefruit juice."
+        },
+        {
+          "medicineName": "CoQ10 Cardiovascular Supplement",
+          "dosage": "100 mg",
+          "frequency": "Once daily",
+          "duration": "60 days",
+          "instructions": "Take with meal."
+        }
+      ],
+      "labTests": [
+        {
+          "testName": "12-Lead Electrocardiogram (ECG)",
+          "result": "Normal sinus rhythm, normal axis, no ST-elevation",
+          "normalRange": "Normal cardiac conduction",
+          "testDate": "2026-09-10"
+        },
+        {
+          "testName": "Serum Lipid Profile",
+          "result": "Total Cholesterol 192 mg/dL, LDL 115 mg/dL, HDL 52 mg/dL",
+          "normalRange": "< 200 mg/dL",
+          "testDate": "2026-09-10"
+        }
+      ],
+      "doctorNotes": "Patient exhibits stage 1 hypertension triggered by recent workload. Recommended 30 mins brisk walking, reduction in dietary sodium, and regular sleep schedule.",
+      "followUpDate": "2026-09-25"
+    },
+    {
+      "_id": "60d0fe4f5311236168a109a2",
+      "patient": "60d0fe4f5311236168a109e2",
+      "doctor": "60d0fe4f5311236168a109d3",
+      "visitDate": "2026-09-12",
+      "symptoms": ["Facial erythema", "Itching on cheeks and chin", "Dry skin patches"],
+      "diagnosis": "Contact Dermatitis (Cosmetic-induced)",
+      "vitals": {
+        "bloodPressure": "118/76 mmHg",
+        "heartRate": "70 bpm",
+        "temperature": "98.6 F",
+        "weight": "58 kg",
+        "oxygenLevel": "100%"
+      },
+      "prescriptions": [
+        {
+          "medicineName": "Hydrocortisone Cream 1%",
+          "dosage": "Thin layer",
+          "frequency": "Twice daily",
+          "duration": "7 days",
+          "instructions": "Apply sparingly on affected areas. Discontinue if redness increases."
+        },
+        {
+          "medicineName": "Cetirizine Hydrochloride",
+          "dosage": "10 mg",
+          "frequency": "Once daily at bedtime",
+          "duration": "5 days",
+          "instructions": "May cause mild drowsiness."
+        }
+      ],
+      "labTests": [],
+      "doctorNotes": "Allergen identified as synthetic fragrance in facial serum. Advised gentle fragrance-free ceramide moisturizer.",
+      "followUpDate": "2026-09-25"
+    }
+  ]
+}

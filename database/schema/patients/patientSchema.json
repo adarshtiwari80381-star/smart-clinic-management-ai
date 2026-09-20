@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Patient",
+  "description": "Patient entity schema for Clinic Management System",
+  "type": "object",
+  "properties": {
+    "_id": { "type": "string", "description": "MongoDB ObjectId" },
+    "userId": { "type": ["string", "null"], "description": "Ref to User account if registered" },
+    "name": { "type": "string", "minLength": 2, "maxLength": 100 },
+    "email": { "type": "string", "format": "email" },
+    "phone": { "type": "string" },
+    "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+    "dateOfBirth": { "type": "string", "format": "date" },
+    "age": { "type": "integer", "minimum": 0, "maximum": 130 },
+    "bloodGroup": {
+      "type": "string",
+      "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"]
+    },
+    "address": { "type": "string" },
+    "emergencyContact": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "relationship": { "type": "string" },
+        "phone": { "type": "string" }
+      }
+    },
+    "allergies": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "medicalHistory": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["name", "phone", "gender", "age"]
+}

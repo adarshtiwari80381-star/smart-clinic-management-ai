@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediFlow AI - Smart Clinic Management System</title>
+  <meta name="description" content="AI-Powered Clinical Management System with Patient Care, Conflict-Free Scheduling, and Clinical Records.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/jpeg" href="assets/images/clinic_logo.jpg">
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- ==========================================
+         SIDEBAR NAVIGATION
+         ========================================== -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/images/clinic_logo.jpg" alt="Clinic Logo" class="brand-logo" onerror="this.src='https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=100&auto=format&fit=crop&q=80'">
+        <div class="brand-info">
+          <h2>MediFlow AI</h2>
+          <span>Smart Healthcare</span>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active" data-view="dashboard">
+          <a href="#dashboard">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item" data-view="patients">
+          <a href="#patients">
+            <span class="nav-icon">👥</span>
+            <span>Patients</span>
+          </a>
+        </li>
+        <li class="nav-item" data-view="doctors">
+          <a href="#doctors">
+            <span class="nav-icon">🩺</span>
+            <span>Doctors</span>
+          </a>
+        </li>
+        <li class="nav-item" data-view="appointments">
+          <a href="#appointments">
+            <span class="nav-icon">📅</span>
+            <span>Appointments</span>
+          </a>
+        </li>
+        <li class="nav-item" data-view="records">
+          <a href="#records">
+            <span class="nav-icon">📋</span>
+            <span>Medical Records</span>
+          </a>
+        </li>
+        <li class="nav-item" data-view="ai-assistant">
+          <a href="#ai-assistant">
+            <span class="nav-icon">🤖</span>
+            <span>AI Health Assistant</span>
+            <span class="nav-badge-ai">AI LIVE</span>
+          </a>
+        </li>
+        <li class="nav-item" data-view="settings">
+          <a href="#settings">
+            <span class="nav-icon">⚙️</span>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="connection-status">
+          <div class="status-dot" id="apiStatusDot"></div>
+          <span id="apiStatusText">Backend Connected (Port 5000)</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN APPLICATION CONTENT AREA
+         ========================================== -->
+    <main class="main-wrapper">
+      <!-- TOP HEADER -->
+      <header class="top-header">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="btn-hamburger" id="btnHamburger" onclick="window.clinicApp.toggleMobileSidebar()" aria-label="Toggle Sidebar">
+            <span>☰</span>
+          </button>
+          <div class="header-left">
+            <h1 id="pageTitle">Clinic Dashboard</h1>
+            <p id="pageSubtitle">Overview of hospital operations, appointments and consultations</p>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- User Profile & Role Card -->
+          <div class="user-profile-widget" id="userProfileWidget" title="Click to view details or switch account">
+            <div class="avatar-circle" id="userAvatar">A</div>
+            <div class="user-details">
+              <span class="user-name" id="userName">Administrator</span>
+              <span class="role-badge admin" id="userRoleBadge">Admin</span>
+            </div>
+          </div>
+
+          <!-- Login/Logout Toggle -->
+          <button class="btn-header-login" id="btnLoginModal" style="display: none;">
+            <span>🔑</span> Sign In
+          </button>
+          <button class="btn-header-logout" id="btnLogout">
+            <span>🚪</span> Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- ==========================================
+           VIEW 1: DASHBOARD
+           ========================================== -->
+      <section id="view-dashboard" class="view-section active">
+        <!-- Role-Specific Workspace Banner -->
+        <div id="roleWorkspaceBanner" class="role-workspace-banner"></div>
+
+        <!-- Metric Cards Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card patients">
+            <div class="metric-icon-box">👥</div>
+            <div class="metric-info">
+              <h3 id="statTotalPatients">--</h3>
+              <p>Registered Patients</p>
+            </div>
+          </div>
+          <div class="metric-card appointments">
+            <div class="metric-icon-box">📅</div>
+            <div class="metric-info">
+              <h3 id="statTotalAppointments">--</h3>
+              <p>Total Appointments</p>
+            </div>
+          </div>
+          <div class="metric-card doctors">
+            <div class="metric-icon-box">🩺</div>
+            <div class="metric-info">
+              <h3 id="statTotalDoctors">--</h3>
+              <p>Specialist Doctors</p>
+            </div>
+          </div>
+          <div class="metric-card ai">
+            <div class="metric-icon-box">⚡</div>
+            <div class="metric-info">
+              <h3 id="statTotalRecords">--</h3>
+              <p>Clinical Records</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Quick Actions & Upcoming Appointments -->
+        <div class="action-header">
+          <h3 style="font-size: 1.15rem; color: #fff;">Upcoming Consultations</h3>
+          <div class="action-btns">
+            <button class="btn-primary" onclick="window.clinicApp.openModal('modalBookAppointment')">
+              <span>➕</span> Book Appointment
+            </button>
+            <button class="btn-secondary" onclick="window.clinicApp.switchView('ai-assistant')">
+              <span>🤖</span> Consult AI Assistant
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="custom-table" id="dashboardAppointmentsTable">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Assigned Doctor</th>
+                  <th>Date & Time</th>
+                  <th>Reason</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading consultations...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 2: PATIENTS MANAGEMENT
+           ========================================== -->
+      <section id="view-patients" class="view-section">
+        <div class="action-header">
+          <div class="search-filter-group">
+            <div class="search-input-wrapper">
+              <span class="search-icon-pos">🔍</span>
+              <input type="text" id="patientSearchInput" placeholder="Search by name, phone or email...">
+            </div>
+          </div>
+          <button class="btn-primary" id="btnOpenAddPatient" onclick="window.clinicApp.openModal('modalAddPatient')">
+            <span>➕</span> Add New Patient
+          </button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="custom-table" id="patientsTable">
+              <thead>
+                <tr>
+                  <th>Patient Name</th>
+                  <th>Contact Info</th>
+                  <th>Age / Gender</th>
+                  <th>Blood Group</th>
+                  <th>Known Allergies</th>
+                  <th>Medical History</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center; color: var(--text-dim);">Loading patient records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 3: DOCTORS DIRECTORY
+           ========================================== -->
+      <section id="view-doctors" class="view-section">
+        <div class="action-header">
+          <div class="search-filter-group">
+            <div class="search-input-wrapper">
+              <span class="search-icon-pos">🔍</span>
+              <input type="text" id="doctorSearchInput" placeholder="Search doctors or departments...">
+            </div>
+            <select class="filter-select" id="doctorSpecializationFilter">
+              <option value="">All Specializations</option>
+              <option value="Cardiology">Cardiology</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="General Medicine">General Medicine</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="btnOpenAddDoctor" onclick="window.clinicApp.openModal('modalAddDoctor')">
+            <span>➕</span> Add Specialist Doctor
+          </button>
+        </div>
+
+        <!-- Doctors Cards Grid -->
+        <div class="doctors-grid" id="doctorsCardsContainer">
+          <!-- Injected via JavaScript -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 4: APPOINTMENTS & SCHEDULING
+           ========================================== -->
+      <section id="view-appointments" class="view-section">
+        <div class="action-header">
+          <div class="search-filter-group">
+            <select class="filter-select" id="appointmentStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="window.clinicApp.openModal('modalBookAppointment')">
+            <span>📅</span> Schedule Appointment
+          </button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="custom-table" id="appointmentsTable">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Date</th>
+                  <th>Time Slot</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center; color: var(--text-dim);">Loading appointment schedule...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 5: MEDICAL RECORDS
+           ========================================== -->
+      <section id="view-records" class="view-section">
+        <div class="action-header">
+          <div class="search-filter-group">
+            <p style="color: var(--text-muted); font-size: 0.88rem;">Clinical diagnoses, prescription plans, vitals, and physician notes</p>
+          </div>
+          <button class="btn-primary" id="btnOpenAddRecord" onclick="window.clinicApp.openModal('modalAddRecord')">
+            <span>📋</span> New Clinical Record
+          </button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="custom-table" id="medicalRecordsTable">
+              <thead>
+                <tr>
+                  <th>Visit Date</th>
+                  <th>Patient</th>
+                  <th>Attending Physician</th>
+                  <th>Diagnosis</th>
+                  <th>Vitals</th>
+                  <th>Prescribed Drugs</th>
+                  <th style="text-align: right;">View Case</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center; color: var(--text-dim);">Loading medical records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 6: AI HEALTH ASSISTANT
+           ========================================== -->
+      <section id="view-ai-assistant" class="view-section">
+        <div class="ai-assistant-container">
+          <!-- AI Header -->
+          <div class="ai-header">
+            <div class="ai-header-info">
+              <div class="ai-bot-avatar">🤖</div>
+              <div>
+                <h3>MediFlow Clinical AI Health Assistant</h3>
+                <p>Intelligent General Health Triage & Guidance Engine (Zero-Cost Offline)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mandatory Disclaimer Banner -->
+          <div class="ai-disclaimer-banner">
+            <span class="disclaimer-icon">⚠️</span>
+            <span><strong>Notice:</strong> AI Health Assistant provides general health information and does not replace a qualified medical professional. For emergencies, call emergency services immediately.</span>
+          </div>
+
+          <!-- Chat messages area -->
+          <div class="ai-chat-thread" id="aiChatThread">
+            <div class="chat-bubble ai-msg">
+              <h3>Hello! I am your Clinic Health Assistant.</h3>
+              <p>I can offer general health information, wellness tips, diet and hydration guidance, and help you choose the right clinic specialist for your symptoms.</p>
+              <p>How can I assist your health and wellness today?</p>
+              <span class="chat-time">Live System</span>
+            </div>
+          </div>
+
+          <!-- Quick Suggestion Chips -->
+          <div class="chat-suggestions">
+            <button class="suggestion-chip" onclick="window.clinicApp.askAiQuestion('What are good lifestyle measures for high blood pressure?')">🩺 High BP Tips</button>
+            <button class="suggestion-chip" onclick="window.clinicApp.askAiQuestion('What home care is recommended for cold and mild fever?')">🌡️ Cold & Fever Care</button>
+            <button class="suggestion-chip" onclick="window.clinicApp.askAiQuestion('I have sudden crushing chest pain and arm numbness')">🚨 Emergency Chest Pain</button>
+            <button class="suggestion-chip" onclick="window.clinicApp.askAiQuestion('What general advice helps with skin rash and itching?')">🧴 Skin Allergy Advice</button>
+            <button class="suggestion-chip" onclick="window.clinicApp.askAiQuestion('Tips for reducing work stress and improving sleep')">🌙 Sleep & Stress Relief</button>
+          </div>
+
+          <!-- Input Bar -->
+          <div class="ai-input-bar">
+            <input type="text" id="aiInputPrompt" placeholder="Ask a health question (e.g. 'What can I do for a tension headache?')..." onkeydown="if(event.key === 'Enter') window.clinicApp.handleAiSend()">
+            <button class="btn-send-ai" id="btnSendAi" onclick="window.clinicApp.handleAiSend()">
+              <span>Send</span> ➔
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 7: CLINIC SETTINGS
+           ========================================== -->
+      <section id="view-settings" class="view-section">
+        <div class="action-header">
+          <h3 style="font-size: 1.15rem; color: #fff;">System Configuration & Preferences</h3>
+        </div>
+
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h4>🏥 Clinic Profile</h4>
+            <div class="form-group" style="margin-top: 14px;">
+              <label>Clinic Facility Name</label>
+              <input type="text" id="settingClinicName" class="form-control" value="MediFlow AI Smart Clinic">
+            </div>
+            <div class="form-group" style="margin-top: 12px;">
+              <label>Emergency Contact Hotline</label>
+              <input type="text" id="settingClinicPhone" class="form-control" value="+1 (555) 019-9110">
+            </div>
+            <div class="form-group" style="margin-top: 12px;">
+              <label>Working Hours</label>
+              <input type="text" id="settingClinicHours" class="form-control" value="Monday - Saturday, 08:00 AM - 08:00 PM">
+            </div>
+            <button class="btn-primary" style="margin-top: 16px; font-size: 0.82rem;" onclick="window.clinicApp.saveClinicSettings()">
+              Save Settings
+            </button>
+          </div>
+
+          <div class="settings-card">
+            <h4>🤖 AI Health Engine Status</h4>
+            <div style="margin-top: 14px; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+              <div>🟢 <strong>Engine Mode:</strong> High-Performance Clinical Knowledge Triage</div>
+              <div>⚡ <strong>Status:</strong> 100% Offline Capable (No paid API needed)</div>
+              <div>🛡️ <strong>Safety Disclaimers:</strong> Strictly Enforced on all outputs</div>
+              <div>🚨 <strong>Emergency Detection:</strong> Active (Cardiac, Stroke/FAST, Respiratory)</div>
+            </div>
+            <div style="margin-top: 20px; padding: 12px; background: rgba(14,165,233,0.1); border-radius: 8px; font-size: 0.8rem; color: #38bdf8;">
+              AI Health Assistant provides general guidance only and routes high-risk cases to qualified professionals.
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4>👤 Active Account & Role</h4>
+            <div style="margin-top: 14px; font-size: 0.88rem; color: #fff;">
+              <p><strong id="setUserName">Admin</strong></p>
+              <p style="color: var(--text-muted); font-size: 0.82rem;" id="setUserEmail">admin@smartclinic.com</p>
+              <p style="margin-top: 8px;"><span class="role-badge admin" id="setUserBadge">Admin</span></p>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+              <button class="btn-secondary" style="font-size: 0.82rem;" onclick="window.clinicApp.openModal('modalAuth')">
+                Switch Role / Sign In
+              </button>
+              <button class="btn-header-logout" onclick="window.clinicApp.logoutUser(true)">
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODALS
+       ========================================== -->
+
+  <!-- 1. LOGIN / DEMO MODAL -->
+  <div class="modal-backdrop" id="modalAuth">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 id="authModalTitle">Sign In to Clinic System</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalAuth')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="loginForm" onsubmit="window.clinicApp.handleLogin(event)">
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label>Email Address</label>
+            <input type="email" id="loginEmail" class="form-control" placeholder="user@clinic.com" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label>Password</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+            Sign In
+          </button>
+        </form>
+
+        <!-- One Click Demo Login Buttons -->
+        <div class="auth-demo-box">
+          <p>Quick Demo Sign-In (College Project Testing):</p>
+          <div class="demo-buttons-row">
+            <button class="btn-demo" onclick="window.clinicApp.quickLogin('admin@smartclinic.com', 'admin123')">
+              👑 Admin
+            </button>
+            <button class="btn-demo" onclick="window.clinicApp.quickLogin('doctor@smartclinic.com', 'doctor123')">
+              🩺 Doctor
+            </button>
+            <button class="btn-demo" onclick="window.clinicApp.quickLogin('patient@smartclinic.com', 'patient123')">
+              👤 Patient
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. BOOK APPOINTMENT MODAL (With Conflict Alert) -->
+  <div class="modal-backdrop" id="modalBookAppointment">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Book Medical Appointment</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalBookAppointment')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Conflict Alert Banner -->
+        <div class="conflict-alert" id="appointmentConflictAlert">
+          <span>⚠️</span>
+          <span id="appointmentConflictMessage">Doctor is not available at this time.</span>
+        </div>
+
+        <form id="bookAppointmentForm" onsubmit="window.clinicApp.handleCreateAppointment(event)">
+          <div class="form-grid">
+            <div class="form-group full-width" id="appointmentPatientGroup">
+              <label>Select Patient *</label>
+              <select id="apptPatientSelect" class="form-control" required>
+                <option value="">-- Choose Patient --</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Select Attending Doctor *</label>
+              <select id="apptDoctorSelect" class="form-control" required onchange="window.clinicApp.onDoctorSelected(this.value)">
+                <option value="">-- Choose Doctor --</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Appointment Date *</label>
+              <input type="date" id="apptDateInput" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Time Slot *</label>
+              <select id="apptTimeSelect" class="form-control" required>
+                <option value="09:00">09:00 AM</option>
+                <option value="09:30">09:30 AM</option>
+                <option value="10:00" selected>10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="14:00">02:00 PM</option>
+                <option value="14:30">02:30 PM</option>
+                <option value="15:00">03:00 PM</option>
+                <option value="15:30">03:30 PM</option>
+                <option value="16:00">04:00 PM</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Consultation Type</label>
+              <select id="apptTypeSelect" class="form-control">
+                <option value="Consultation">Consultation</option>
+                <option value="Routine Checkup">Routine Checkup</option>
+                <option value="Follow-up">Follow-up</option>
+                <option value="Emergency">Emergency</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Reason for Visit *</label>
+              <input type="text" id="apptReasonInput" class="form-control" placeholder="e.g. Quarterly checkup, chest tightness, allergy" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Additional Notes (Optional)</label>
+              <textarea id="apptNotesInput" class="form-control" rows="2" placeholder="Any specific symptoms or requests..."></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalBookAppointment')">Cancel</button>
+            <button type="submit" class="btn-primary">Confirm Appointment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ADD PATIENT MODAL -->
+  <div class="modal-backdrop" id="modalAddPatient">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Register New Patient</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalAddPatient')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addPatientForm" onsubmit="window.clinicApp.handleCreatePatient(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="patNameInput" class="form-control" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+              <label>Phone Number *</label>
+              <input type="tel" id="patPhoneInput" class="form-control" required placeholder="+1 (555) 019-0000">
+            </div>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="patEmailInput" class="form-control" placeholder="patient@example.com">
+            </div>
+            <div class="form-group">
+              <label>Age *</label>
+              <input type="number" id="patAgeInput" class="form-control" required min="0" max="120" value="30">
+            </div>
+            <div class="form-group">
+              <label>Gender *</label>
+              <select id="patGenderSelect" class="form-control" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Blood Group</label>
+              <select id="patBloodSelect" class="form-control">
+                <option value="Unknown">Unknown</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+" selected>O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label>Residential Address</label>
+              <input type="text" id="patAddressInput" class="form-control" placeholder="123 Street, City">
+            </div>
+            <div class="form-group full-width">
+              <label>Allergies (comma-separated)</label>
+              <input type="text" id="patAllergiesInput" class="form-control" placeholder="e.g. Penicillin, Peanuts, None">
+            </div>
+            <div class="form-group full-width">
+              <label>Medical History (comma-separated)</label>
+              <input type="text" id="patHistoryInput" class="form-control" placeholder="e.g. Hypertension, Asthma">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalAddPatient')">Cancel</button>
+            <button type="submit" class="btn-primary">Save Patient</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. ADD DOCTOR MODAL (Admin Only) -->
+  <div class="modal-backdrop" id="modalAddDoctor">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Add Specialist Doctor</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalAddDoctor')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addDoctorForm" onsubmit="window.clinicApp.handleCreateDoctor(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Doctor Name *</label>
+              <input type="text" id="docNameInput" class="form-control" required placeholder="Dr. Jane Smith">
+            </div>
+            <div class="form-group">
+              <label>Specialization *</label>
+              <input type="text" id="docSpecInput" class="form-control" required placeholder="e.g. Cardiology, Neurology">
+            </div>
+            <div class="form-group">
+              <label>Qualifications</label>
+              <input type="text" id="docQualInput" class="form-control" placeholder="MBBS, MD">
+            </div>
+            <div class="form-group">
+              <label>Experience (Years)</label>
+              <input type="number" id="docExpInput" class="form-control" min="0" value="5">
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="docEmailInput" class="form-control" required placeholder="doctor@clinic.com">
+            </div>
+            <div class="form-group">
+              <label>Phone *</label>
+              <input type="tel" id="docPhoneInput" class="form-control" required placeholder="+1 (555) 019-1234">
+            </div>
+            <div class="form-group">
+              <label>Consultation Fee ($)</label>
+              <input type="number" id="docFeeInput" class="form-control" value="80">
+            </div>
+            <div class="form-group">
+              <label>Consultation Room</label>
+              <input type="text" id="docRoomInput" class="form-control" placeholder="Room 204">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalAddDoctor')">Cancel</button>
+            <button type="submit" class="btn-primary">Add Doctor</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ADD MEDICAL RECORD MODAL -->
+  <div class="modal-backdrop" id="modalAddRecord">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Create Clinical Medical Record</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalAddRecord')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addRecordForm" onsubmit="window.clinicApp.handleCreateRecord(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Patient *</label>
+              <select id="recPatientSelect" class="form-control" required>
+                <option value="">-- Select Patient --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Attending Doctor *</label>
+              <select id="recDoctorSelect" class="form-control" required>
+                <option value="">-- Select Doctor --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Visit Date *</label>
+              <input type="date" id="recVisitDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Diagnosis *</label>
+              <input type="text" id="recDiagnosis" class="form-control" required placeholder="e.g. Acute Bronchitis, Hypertension">
+            </div>
+            <div class="form-group full-width">
+              <label>Reported Symptoms (comma-separated)</label>
+              <input type="text" id="recSymptoms" class="form-control" placeholder="Cough, low grade fever, fatigue">
+            </div>
+            <div class="form-group">
+              <label>Blood Pressure</label>
+              <input type="text" id="recBP" class="form-control" placeholder="120/80 mmHg">
+            </div>
+            <div class="form-group">
+              <label>Heart Rate</label>
+              <input type="text" id="recHR" class="form-control" placeholder="72 bpm">
+            </div>
+            <div class="form-group">
+              <label>Temperature</label>
+              <input type="text" id="recTemp" class="form-control" placeholder="98.6 F">
+            </div>
+            <div class="form-group">
+              <label>Oxygen Level (SpO2)</label>
+              <input type="text" id="recSpO2" class="form-control" placeholder="99%">
+            </div>
+            <div class="form-group full-width">
+              <label>Prescriptions (Format: Name | Dosage | Frequency | Duration)</label>
+              <textarea id="recPrescriptions" class="form-control" rows="2" placeholder="Amoxicillin | 500mg | 3 times daily | 7 days"></textarea>
+            </div>
+            <div class="form-group full-width">
+              <label>Clinical Notes & Recommendations</label>
+              <textarea id="recNotes" class="form-control" rows="2" placeholder="Advised warm fluids and review in 1 week."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Follow-Up Date</label>
+              <input type="date" id="recFollowUp" class="form-control">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalAddRecord')">Cancel</button>
+            <button type="submit" class="btn-primary">Save Medical Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. CLINICAL CASE SUMMARY MODAL -->
+  <div class="modal-backdrop" id="modalViewRecord">
+    <div class="modal-window" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3>Clinical Case Summary</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalViewRecord')">&times;</button>
+      </div>
+      <div class="modal-body" id="viewRecordBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="window.print()">🖨️ Print Record</button>
+        <button class="btn-primary" onclick="window.clinicApp.closeModal('modalViewRecord')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. EDIT PATIENT MODAL -->
+  <div class="modal-backdrop" id="modalEditPatient">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Edit Patient Details</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalEditPatient')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editPatientForm" onsubmit="window.clinicApp.handleUpdatePatient(event)">
+          <input type="hidden" id="editPatId">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="editPatName" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Phone Number *</label>
+              <input type="tel" id="editPatPhone" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="editPatEmail" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Age *</label>
+              <input type="number" id="editPatAge" class="form-control" required min="0" max="120">
+            </div>
+            <div class="form-group">
+              <label>Gender *</label>
+              <select id="editPatGender" class="form-control" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Blood Group</label>
+              <select id="editPatBlood" class="form-control">
+                <option value="Unknown">Unknown</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label>Residential Address</label>
+              <input type="text" id="editPatAddress" class="form-control">
+            </div>
+            <div class="form-group full-width">
+              <label>Allergies (comma-separated)</label>
+              <input type="text" id="editPatAllergies" class="form-control">
+            </div>
+            <div class="form-group full-width">
+              <label>Medical History (comma-separated)</label>
+              <input type="text" id="editPatHistory" class="form-control">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalEditPatient')">Cancel</button>
+            <button type="submit" class="btn-primary">Update Patient</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. EDIT DOCTOR MODAL (Admin Only) -->
+  <div class="modal-backdrop" id="modalEditDoctor">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Edit Specialist Doctor</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalEditDoctor')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editDoctorForm" onsubmit="window.clinicApp.handleUpdateDoctor(event)">
+          <input type="hidden" id="editDocId">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Doctor Name *</label>
+              <input type="text" id="editDocName" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Specialization *</label>
+              <input type="text" id="editDocSpec" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Qualifications</label>
+              <input type="text" id="editDocQual" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Experience (Years)</label>
+              <input type="number" id="editDocExp" class="form-control" min="0">
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="editDocEmail" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Phone *</label>
+              <input type="tel" id="editDocPhone" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Consultation Fee ($)</label>
+              <input type="number" id="editDocFee" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Consultation Room</label>
+              <input type="text" id="editDocRoom" class="form-control">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalEditDoctor')">Cancel</button>
+            <button type="submit" class="btn-primary">Update Doctor</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. EDIT MEDICAL RECORD MODAL -->
+  <div class="modal-backdrop" id="modalEditRecord">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Edit Clinical Medical Record</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalEditRecord')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editRecordForm" onsubmit="window.clinicApp.handleUpdateRecord(event)">
+          <input type="hidden" id="editRecId">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Diagnosis *</label>
+              <input type="text" id="editRecDiagnosis" class="form-control" required>
+            </div>
+            <div class="form-group full-width">
+              <label>Symptoms (comma-separated)</label>
+              <input type="text" id="editRecSymptoms" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Blood Pressure</label>
+              <input type="text" id="editRecBP" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Heart Rate</label>
+              <input type="text" id="editRecHR" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Temperature</label>
+              <input type="text" id="editRecTemp" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Oxygen Level (SpO2)</label>
+              <input type="text" id="editRecSpO2" class="form-control">
+            </div>
+            <div class="form-group full-width">
+              <label>Prescriptions (Format: Name | Dosage | Frequency | Duration)</label>
+              <textarea id="editRecPrescriptions" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-group full-width">
+              <label>Clinical Notes</label>
+              <textarea id="editRecNotes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Follow-Up Date</label>
+              <input type="date" id="editRecFollowUp" class="form-control">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
+            <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalEditRecord')">Cancel</button>
+            <button type="submit" class="btn-primary">Update Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. PATIENT PROFILE MODAL -->
+  <div class="modal-backdrop" id="modalPatientProfile">
+    <div class="modal-window" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>Patient Comprehensive Profile</h3>
+        <button class="modal-close" onclick="window.clinicApp.closeModal('modalPatientProfile')">&times;</button>
+      </div>
+      <div class="modal-body" id="patientProfileBody">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="window.clinicApp.closeModal('modalPatientProfile')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- App Main Logic Script -->
+  <script src="script.js"></script>
+</body>
+</html>

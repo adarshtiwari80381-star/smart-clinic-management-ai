@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User",
+  "description": "User account schema for Clinic Management System",
+  "type": "object",
+  "properties": {
+    "_id": { "type": "string", "description": "MongoDB ObjectId" },
+    "name": { "type": "string", "minLength": 2, "maxLength": 100 },
+    "email": { "type": "string", "format": "email" },
+    "password": { "type": "string", "description": "Bcrypt hashed password" },
+    "role": {
+      "type": "string",
+      "enum": ["Admin", "Doctor", "Patient"],
+      "default": "Patient"
+    },
+    "doctorId": { "type": ["string", "null"], "description": "Ref to Doctor model if role is Doctor" },
+    "patientId": { "type": ["string", "null"], "description": "Ref to Patient model if role is Patient" },
+    "phone": { "type": "string" },
+    "avatar": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["name", "email", "password", "role"]
+}

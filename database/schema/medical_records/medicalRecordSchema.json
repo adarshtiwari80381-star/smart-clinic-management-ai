@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MedicalRecord",
+  "description": "Clinical and medical record schema for Clinic Management System",
+  "type": "object",
+  "properties": {
+    "_id": { "type": "string", "description": "MongoDB ObjectId" },
+    "patient": { "type": "string", "description": "Ref to Patient ObjectId" },
+    "doctor": { "type": "string", "description": "Ref to Doctor ObjectId" },
+    "appointment": { "type": ["string", "null"], "description": "Ref to Appointment ObjectId if linked" },
+    "visitDate": { "type": "string", "format": "date" },
+    "symptoms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "diagnosis": { "type": "string" },
+    "vitals": {
+      "type": "object",
+      "properties": {
+        "bloodPressure": { "type": "string", "example": "120/80 mmHg" },
+        "heartRate": { "type": "string", "example": "72 bpm" },
+        "temperature": { "type": "string", "example": "98.6 F" },
+        "weight": { "type": "string", "example": "68 kg" },
+        "oxygenLevel": { "type": "string", "example": "99%" }
+      }
+    },
+    "prescriptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "medicineName": { "type": "string" },
+          "dosage": { "type": "string" },
+          "frequency": { "type": "string" },
+          "duration": { "type": "string" },
+          "instructions": { "type": "string" }
+        },
+        "required": ["medicineName", "dosage", "frequency", "duration"]
+      }
+    },
+    "labTests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "testName": { "type": "string" },
+          "result": { "type": "string" },
+          "normalRange": { "type": "string" },
+          "testDate": { "type": "string" }
+        }
+      }
+    },
+    "doctorNotes": { "type": "string" },
+    "followUpDate": { "type": ["string", "null"] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["patient", "doctor", "diagnosis", "visitDate"]
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Doctor",
+  "description": "Doctor entity schema for Clinic Management System",
+  "type": "object",
+  "properties": {
+    "_id": { "type": "string", "description": "MongoDB ObjectId" },
+    "userId": { "type": ["string", "null"], "description": "Ref to User account" },
+    "name": { "type": "string", "minLength": 2, "maxLength": 100 },
+    "specialization": { "type": "string" },
+    "qualifications": { "type": "string" },
+    "experienceYears": { "type": "integer", "minimum": 0 },
+    "email": { "type": "string", "format": "email" },
+    "phone": { "type": "string" },
+    "consultationFee": { "type": "number", "minimum": 0 },
+    "availableDays": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      }
+    },
+    "availableTimeSlots": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "roomNumber": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["Active", "On Leave", "Inactive"],
+      "default": "Active"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["name", "specialization", "email", "phone"]
+}

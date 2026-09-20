@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Appointment",
+  "description": "Appointment entity schema with unique doctor-slot constraint",
+  "type": "object",
+  "properties": {
+    "_id": { "type": "string", "description": "MongoDB ObjectId" },
+    "patient": { "type": "string", "description": "Ref to Patient ObjectId" },
+    "doctor": { "type": "string", "description": "Ref to Doctor ObjectId" },
+    "appointmentDate": { "type": "string", "description": "YYYY-MM-DD" },
+    "appointmentTime": { "type": "string", "description": "HH:MM format, e.g. 09:30 or 14:00" },
+    "reason": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["Scheduled", "Confirmed", "In-Progress", "Completed", "Cancelled"],
+      "default": "Scheduled"
+    },
+    "notes": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["Routine Checkup", "Consultation", "Follow-up", "Emergency"],
+      "default": "Consultation"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "indexes": [
+    {
+      "fields": { "doctor": 1, "appointmentDate": 1, "appointmentTime": 1 },
+      "unique": true,
+      "description": "Enforces no duplicate appointment for the same doctor at the exact date and time"
+    }
+  ],
+  "required": ["patient", "doctor", "appointmentDate", "appointmentTime", "reason"]
+}
