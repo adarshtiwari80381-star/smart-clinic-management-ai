@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node build.js",
+  "buildCommand": "node frontend/build.js",
   "outputDirectory": "frontend",
   "cleanUrls": true,
   "rewrites": [
