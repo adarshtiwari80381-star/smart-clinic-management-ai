@@ -1,5 +1,5 @@
 /**
- * Build Script for Vercel / Netlify / CI Deployments
+ * Build Script for Netlify / CI Deployments
  * Injects Environment Variables into env.js if provided
  */
 

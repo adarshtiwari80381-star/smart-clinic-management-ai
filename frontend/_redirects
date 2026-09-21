@@ -1,6 +1,2 @@
-# Netlify redirects configuration
-# Reverse proxy /api requests to Render production backend
 /api/*  https://smart-clinic-ai-backend.onrender.com/api/:splat  200!
-
-# SPA client-side routing fallback
-/*      /index.html                                              200
+/*      /index.html                                               200

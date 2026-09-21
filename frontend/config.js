@@ -2,7 +2,7 @@
  * ==========================================================================
  * MEDIFLOW AI - API CONFIGURATION
  * Centralized API endpoint resolution for Local Development and Production
- * Supports Vercel, Netlify, Render, and Localhost
+ * Supports Netlify, Render, and Localhost
  * ==========================================================================
  */
 
@@ -41,7 +41,7 @@
    * Resolves the active API base URL (guaranteed to end with /api)
    */
   function getApiBase() {
-    // 1. Production environment (Vercel, Netlify, custom domain): STRICTLY use Render!
+    // 1. Production environment (Netlify, custom domain): STRICTLY use Render!
     if (!isLocalEnvironment()) {
       const savedCustom = localStorage.getItem('mediflow_custom_api_base');
       if (savedCustom && savedCustom.trim()) {

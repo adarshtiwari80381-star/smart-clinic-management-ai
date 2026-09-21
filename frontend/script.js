@@ -18,7 +18,7 @@
     if (window.__MEDIFLOW_API_BASE__) {
       return window.__MEDIFLOW_API_BASE__;
     }
-    // Strict production fallback: If running on Vercel or any remote domain, never use localhost
+    // Strict production fallback: If running on Netlify or any remote domain, never use localhost
     const isLocal = (
       window.location.protocol === 'file:' ||
       window.location.hostname === 'localhost' ||
