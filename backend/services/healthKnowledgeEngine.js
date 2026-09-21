@@ -11,7 +11,7 @@ const EMERGENCY_PATTERNS = [
   {
     regex: /(severe chest pain|crushing (chest )?pain|chest pressure|radiating to arm|radiating to jaw|heart attack)/i,
     category: 'Cardiac Emergency',
-    advice: 'Sudden, crushing, or severe chest pain—especially if radiating to your arm, neck, jaw, or accompanied by sweating and shortness of breath—can signal an acute coronary event or other life-threatening condition. Please call emergency services (e.g. 911 / 112 / 999) or proceed to the nearest emergency department immediately.'
+    advice: 'Sudden, crushing, or severe chest pain—especially if radiating to your arm, neck, jaw, or accompanied by sweating and shortness of breath—can signal an acute coronary event or other life-threatening condition. Please call 112 or proceed to the nearest emergency department immediately.'
   },
   {
     regex: /(stroke|facial droop|face drooping|arm weakness|slurred speech|sudden numbness|sudden paralysis|loss of balance and vision)/i,
@@ -669,7 +669,7 @@ exports.analyzeHealthQuery = function (rawQuestion) {
 ${emergency.advice}
 
 **Immediate Life-Saving Steps:**
-1. **Call Emergency Services Immediately:** Dial your local emergency number (e.g. 911 / 112 / 999) without delay.
+1. **Call Emergency Services Immediately:** Call 112 or go to the nearest emergency department immediately.
 2. **Do Not Drive Yourself:** If feeling dizzy, weak, or having severe pain, do not operate a vehicle.
 3. **Alert People Nearby:** Inform someone with you or nearby so they can stay by your side and assist emergency responders.
 4. **Remain Calm & Rest:** Sit or lie down in a safe, well-ventilated position while emergency help is on the way.
