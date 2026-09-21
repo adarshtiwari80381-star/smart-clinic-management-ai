@@ -650,20 +650,24 @@
        MODALS
        ========================================== -->
 
-  <!-- 1. LOGIN / DEMO MODAL -->
+  <!-- 1. LOGIN / DEMO / REGISTRATION MODAL -->
   <div class="modal-backdrop" id="modalAuth">
     <div class="modal-window">
       <div class="modal-header">
-        <h3 id="authModalTitle">Sign In to Clinic System</h3>
+        <div>
+          <h3 id="authModalTitle">Welcome to Smart Clinic AI</h3>
+          <p id="authModalSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Sign in to your clinical portal or register as a new patient</p>
+        </div>
         <button class="modal-close" onclick="window.clinicApp.closeModal('modalAuth')">&times;</button>
       </div>
-        <!-- Authentication Tabs (Sign In vs Public Patient Registration) -->
-        <div class="auth-tabs" style="display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
-          <button type="button" class="tab-btn active" id="tabBtnSignIn" onclick="window.clinicApp.switchAuthTab('login')" style="flex: 1; padding: 8px 12px; background: rgba(14, 165, 233, 0.2); border: 1px solid var(--primary); color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+      <div class="modal-body">
+        <!-- Authentication Mode Tabs (Sign In vs Public Patient Registration) -->
+        <div class="auth-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; background: rgba(15,23,42,0.6); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <button type="button" class="tab-btn active" id="tabBtnSignIn" onclick="window.clinicApp.switchAuthTab('login')" style="flex: 1; padding: 10px 14px; background: rgba(14, 165, 233, 0.25); border: 1px solid var(--primary); color: #fff; border-radius: var(--radius-sm); font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; gap: 6px;">
             🔑 Sign In
           </button>
-          <button type="button" class="tab-btn" id="tabBtnRegister" onclick="window.clinicApp.switchAuthTab('register')" style="flex: 1; padding: 8px 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); color: var(--text-muted); border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
-            📝 Register as Patient
+          <button type="button" class="tab-btn" id="tabBtnRegister" onclick="window.clinicApp.switchAuthTab('register')" style="flex: 1; padding: 10px 14px; background: transparent; border: 1px solid transparent; color: var(--text-muted); border-radius: var(--radius-sm); font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; gap: 6px;">
+            📝 New Patient Sign Up
           </button>
         </div>
 
@@ -671,71 +675,102 @@
         <div id="authLoginFormContainer">
           <form id="loginForm" onsubmit="window.clinicApp.handleLogin(event)">
             <div class="form-group" style="margin-bottom: 14px;">
-              <label>Email Address</label>
-              <input type="email" id="loginEmail" class="form-control" placeholder="user@clinic.com" required>
+              <label for="loginEmail">Email Address</label>
+              <input type="email" id="loginEmail" class="form-control" placeholder="user@clinic.com" required autocomplete="username">
             </div>
             <div class="form-group" style="margin-bottom: 20px;">
-              <label>Password</label>
-              <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
             </div>
-            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.95rem; font-weight: 700;">
               Sign In
             </button>
           </form>
 
+          <!-- Divider -->
+          <div style="display: flex; align-items: center; gap: 12px; margin: 20px 0 16px;">
+            <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+            <span style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">OR QUICK DEMO LOGIN</span>
+            <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+          </div>
+
           <!-- One Click Demo Login Buttons -->
-          <div class="auth-demo-box">
-            <p>Quick Demo Sign-In (College Project Testing):</p>
+          <div class="auth-demo-box" style="margin-top: 0; padding-top: 0; border-top: none;">
             <div class="demo-buttons-row">
-              <button class="btn-demo" onclick="window.clinicApp.quickLogin('admin@smartclinic.com', 'admin123')">
-                👑 Admin
+              <button type="button" class="btn-demo" onclick="window.clinicApp.quickLogin('admin@smartclinic.com', 'admin123')">
+                👑 Admin Login
               </button>
-              <button class="btn-demo" onclick="window.clinicApp.quickLogin('doctor@smartclinic.com', 'doctor123')">
-                🩺 Doctor
+              <button type="button" class="btn-demo" onclick="window.clinicApp.quickLogin('doctor@smartclinic.com', 'doctor123')">
+                🩺 Doctor Login
               </button>
-              <button class="btn-demo" onclick="window.clinicApp.quickLogin('patient@smartclinic.com', 'patient123')">
-                👤 Patient
+              <button type="button" class="btn-demo" onclick="window.clinicApp.quickLogin('patient@smartclinic.com', 'patient123')">
+                👤 Patient Login
               </button>
             </div>
+          </div>
+
+          <!-- CLEARLY VISIBLE PUBLIC PATIENT SIGN UP PROMPT -->
+          <div style="margin-top: 22px; padding: 16px; background: rgba(14, 165, 233, 0.07); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: var(--radius-md); text-align: center;">
+            <p style="font-size: 0.88rem; color: #e2e8f0; margin-bottom: 8px; font-weight: 500;">
+              New Patient? Don't have an account?
+            </p>
+            <button type="button" class="btn-secondary" id="btnGoToRegister" onclick="window.clinicApp.switchAuthTab('register')" style="width: 100%; justify-content: center; padding: 10px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(14, 165, 233, 0.12);">
+              ✨ Create Patient Account (Sign Up)
+            </button>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 8px; margin-bottom: 0;">
+              🔒 <em>Public registration creates a secure Patient portal. Staff accounts are managed by clinic operations.</em>
+            </p>
           </div>
         </div>
 
         <!-- 1B. PUBLIC PATIENT REGISTRATION FORM -->
         <div id="authRegisterFormContainer" style="display: none;">
+          <!-- Header Notice -->
+          <div style="margin-bottom: 16px; padding: 10px 14px; background: rgba(14, 165, 233, 0.1); border-left: 3px solid var(--primary); border-radius: 4px;">
+            <strong style="color: #38bdf8; font-size: 0.84rem;">New Patient Self-Registration</strong>
+            <p style="font-size: 0.77rem; color: var(--text-muted); margin-top: 2px;">
+              Register your patient health profile to book doctor visits and access your clinical history.
+            </p>
+          </div>
+
           <form id="registerPatientForm" onsubmit="window.clinicApp.handleRegisterPatient(event)">
             <div class="form-grid">
               <div class="form-group full-width">
-                <label>Full Name *</label>
-                <input type="text" id="regName" class="form-control" required placeholder="Alice Johnson">
+                <label for="regName">Full Legal Name *</label>
+                <input type="text" id="regName" class="form-control" required placeholder="e.g. Alice Johnson" autocomplete="name">
               </div>
               <div class="form-group">
-                <label>Email Address *</label>
-                <input type="email" id="regEmail" class="form-control" required placeholder="alice@example.com">
+                <label for="regEmail">Email Address *</label>
+                <input type="email" id="regEmail" class="form-control" required placeholder="e.g. alice@example.com" autocomplete="email">
               </div>
               <div class="form-group">
-                <label>Password (min 6 chars) *</label>
-                <input type="password" id="regPassword" class="form-control" required minlength="6" placeholder="••••••••">
+                <label for="regPhone">Phone Number *</label>
+                <input type="tel" id="regPhone" class="form-control" required placeholder="e.g. +1 (555) 234-5678" autocomplete="tel">
               </div>
               <div class="form-group">
-                <label>Phone Number *</label>
-                <input type="tel" id="regPhone" class="form-control" required placeholder="+1 (555) 234-5678">
+                <label for="regPassword">Password (min 6 chars) *</label>
+                <input type="password" id="regPassword" class="form-control" required minlength="6" placeholder="••••••••" autocomplete="new-password">
               </div>
               <div class="form-group">
-                <label>Age *</label>
+                <label for="regConfirmPassword">Confirm Password *</label>
+                <input type="password" id="regConfirmPassword" class="form-control" required minlength="6" placeholder="••••••••" autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label for="regAge">Age *</label>
                 <input type="number" id="regAge" class="form-control" required min="1" max="120" value="28">
               </div>
               <div class="form-group">
-                <label>Gender *</label>
+                <label for="regGender">Gender *</label>
                 <select id="regGender" class="form-control" required>
-                  <option value="Female">Female</option>
+                  <option value="Female" selected>Female</option>
                   <option value="Male">Male</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label>Blood Group</label>
+              <div class="form-group full-width">
+                <label for="regBloodGroup">Blood Group</label>
                 <select id="regBloodGroup" class="form-control">
-                  <option value="Unknown">Unknown</option>
+                  <option value="Unknown">Unknown / Not sure</option>
                   <option value="A+">A+</option>
                   <option value="A-">A-</option>
                   <option value="B+">B+</option>
@@ -747,16 +782,28 @@
                 </select>
               </div>
               <div class="form-group full-width">
-                <label>Residential Address</label>
+                <label for="regAddress">Residential Address</label>
                 <input type="text" id="regAddress" class="form-control" placeholder="123 Maple St, City">
               </div>
             </div>
-            <div style="margin-top: 10px; margin-bottom: 14px; font-size: 0.78rem; color: var(--text-muted); background: rgba(14,165,233,0.08); padding: 8px 12px; border-radius: 6px;">
-              🔒 <em>Public registration creates your secure Patient portal. Role selection is strictly limited to Patients. Admin and Doctor accounts are maintained by clinic operations.</em>
+
+            <!-- Security Notice -->
+            <div style="margin-top: 14px; margin-bottom: 16px; font-size: 0.76rem; color: var(--text-dim); background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+              🛡️ <em>Security Notice: Public registration is strictly scoped to the <strong>Patient</strong> role. Doctor and Administrator privileges cannot be registered here.</em>
             </div>
-            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.95rem; font-weight: 700;">
               Create Patient Account
             </button>
+
+            <div style="margin-top: 16px; text-align: center;">
+              <p style="font-size: 0.85rem; color: var(--text-muted);">
+                Already registered?
+                <a href="javascript:void(0)" onclick="window.clinicApp.switchAuthTab('login')" style="color: #38bdf8; font-weight: 600; text-decoration: underline; margin-left: 4px;">
+                  Back to Sign In
+                </a>
+              </p>
+            </div>
           </form>
         </div>
       </div>

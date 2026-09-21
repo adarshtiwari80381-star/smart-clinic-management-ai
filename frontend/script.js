@@ -314,6 +314,7 @@
         if (closeBtn) {
           closeBtn.style.display = (state.currentUser && state.token) ? 'block' : 'none';
         }
+        switchAuthTab('login');
       }
 
       // Reset conflict alert if appointment modal
@@ -585,33 +586,39 @@
     const regCont = document.getElementById('authRegisterFormContainer');
     const tabLogin = document.getElementById('tabBtnSignIn');
     const tabReg = document.getElementById('tabBtnRegister');
+    const titleEl = document.getElementById('authModalTitle');
+    const subEl = document.getElementById('authModalSubtitle');
 
     if (tab === 'register') {
       if (loginCont) loginCont.style.display = 'none';
       if (regCont) regCont.style.display = 'block';
       if (tabLogin) {
-        tabLogin.style.background = 'rgba(255,255,255,0.05)';
-        tabLogin.style.borderColor = 'var(--border-subtle)';
+        tabLogin.style.background = 'transparent';
+        tabLogin.style.borderColor = 'transparent';
         tabLogin.style.color = 'var(--text-muted)';
       }
       if (tabReg) {
-        tabReg.style.background = 'rgba(14, 165, 233, 0.2)';
+        tabReg.style.background = 'rgba(14, 165, 233, 0.25)';
         tabReg.style.borderColor = 'var(--primary)';
         tabReg.style.color = '#fff';
       }
+      if (titleEl) titleEl.innerText = 'Register New Patient Account';
+      if (subEl) subEl.innerText = 'Fill in your details to create your patient health portal';
     } else {
       if (loginCont) loginCont.style.display = 'block';
       if (regCont) regCont.style.display = 'none';
       if (tabLogin) {
-        tabLogin.style.background = 'rgba(14, 165, 233, 0.2)';
+        tabLogin.style.background = 'rgba(14, 165, 233, 0.25)';
         tabLogin.style.borderColor = 'var(--primary)';
         tabLogin.style.color = '#fff';
       }
       if (tabReg) {
-        tabReg.style.background = 'rgba(255,255,255,0.05)';
-        tabReg.style.borderColor = 'var(--border-subtle)';
+        tabReg.style.background = 'transparent';
+        tabReg.style.borderColor = 'transparent';
         tabReg.style.color = 'var(--text-muted)';
       }
+      if (titleEl) titleEl.innerText = 'Welcome to Smart Clinic AI';
+      if (subEl) subEl.innerText = 'Sign in to your clinical portal or register as a new patient';
     }
   }
 
@@ -620,20 +627,38 @@
     if (e) e.preventDefault();
     const name = document.getElementById('regName')?.value.trim();
     const email = document.getElementById('regEmail')?.value.trim();
-    const password = document.getElementById('regPassword')?.value;
     const phone = document.getElementById('regPhone')?.value.trim();
+    const password = document.getElementById('regPassword')?.value;
+    const confirmPassword = document.getElementById('regConfirmPassword')?.value;
     const age = Number(document.getElementById('regAge')?.value || 25);
-    const gender = document.getElementById('regGender')?.value;
-    const bloodGroup = document.getElementById('regBloodGroup')?.value;
-    const address = document.getElementById('regAddress')?.value.trim();
+    const gender = document.getElementById('regGender')?.value || 'Female';
+    const bloodGroup = document.getElementById('regBloodGroup')?.value || 'Unknown';
+    const address = document.getElementById('regAddress')?.value.trim() || '';
 
-    if (!name || !email || !password || !phone) {
-      showToast('Please complete all required fields.', 'error');
+    // Validation
+    if (!name) {
+      showToast('Please enter your name.', 'error');
       return;
     }
 
-    if (password.length < 6) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      showToast('Please enter a valid email.', 'error');
+      return;
+    }
+
+    if (!phone) {
+      showToast('Please enter your phone number.', 'error');
+      return;
+    }
+
+    if (!password || password.length < 6) {
       showToast('Password must be at least 6 characters.', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showToast('Passwords do not match.', 'error');
       return;
     }
 
@@ -652,24 +677,29 @@
         })
       });
 
-      if (!data || !data.token || !data.user) {
-        throw new Error('Registration failed to return user credentials.');
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Registration failed');
       }
 
-      state.token = data.token;
-      state.currentUser = data.user;
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      sessionStorage.setItem('token', data.token);
-      sessionStorage.setItem('user', JSON.stringify(data.user));
+      // Option A: Return to login form, pre-fill email, and prompt user to login
+      document.getElementById('registerPatientForm')?.reset();
+      switchAuthTab('login');
 
-      updateAuthUI();
-      closeModal('modalAuth');
-      switchView('dashboard');
-      showToast(`Welcome to MediFlow AI, ${data.user.name}! Your patient account is active.`, 'success');
-      refreshAllData();
+      const loginEmailInput = document.getElementById('loginEmail');
+      const loginPassInput = document.getElementById('loginPassword');
+      if (loginEmailInput) loginEmailInput.value = email;
+      if (loginPassInput) {
+        loginPassInput.value = '';
+        loginPassInput.focus();
+      }
+
+      showToast('Registration successful. Please log in.', 'success');
     } catch (err) {
-      showToast(err.message || 'Registration failed', 'error');
+      if (err.message && err.message.toLowerCase().includes('already exists')) {
+        showToast('An account with this email already exists.', 'error');
+      } else {
+        showToast(err.message || 'Registration failed. Please try again.', 'error');
+      }
     }
   }
 

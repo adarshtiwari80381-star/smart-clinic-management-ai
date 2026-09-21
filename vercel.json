@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "node build.js",
-  "outputDirectory": ".",
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend",
   "routes": [
     {
       "src": "/api/(.*)",
