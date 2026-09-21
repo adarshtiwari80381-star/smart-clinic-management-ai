@@ -35,10 +35,24 @@
     return 'http://localhost:5000/api';
   }
 
+  // Storage & State Helpers (Isolated per browser session)
+  function getStoredUser() {
+    try {
+      const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getStoredToken() {
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
+  }
+
   // Global State
   const state = {
-    token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
-    currentUser: JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null'),
+    token: getStoredToken(),
+    currentUser: getStoredUser(),
     activeView: 'dashboard',
     doctors: [],
     patients: [],
@@ -249,6 +263,15 @@
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.add('active');
+
+      // For Auth modal, close button is only available if user is already signed in
+      if (modalId === 'modalAuth') {
+        const closeBtn = modal.querySelector('.modal-close');
+        if (closeBtn) {
+          closeBtn.style.display = (state.currentUser && state.token) ? 'block' : 'none';
+        }
+      }
+
       // Reset conflict alert if appointment modal
       if (modalId === 'modalBookAppointment') {
         const alert = document.getElementById('appointmentConflictAlert');
@@ -284,9 +307,12 @@
     if (modal) modal.classList.remove('active');
   }
 
-  // Close modals on backdrop click
+  // Close modals on backdrop click (prevent dismissing modalAuth when unauthenticated)
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-backdrop')) {
+      if (e.target.id === 'modalAuth' && (!state.currentUser || !state.token)) {
+        return; // Retain login modal for fresh/unauthenticated visitors
+      }
       e.target.classList.remove('active');
     }
   });
@@ -317,17 +343,52 @@
       sec.classList.toggle('active', sec.id === `view-${viewId}`);
     });
 
-    // Update Header
-    const info = viewTitles[viewId] || viewTitles['dashboard'];
-    document.getElementById('pageTitle').innerText = info.title;
-    document.getElementById('pageSubtitle').innerText = info.sub;
+    // Dynamic Header Title & Subtitle based on active role
+    const user = state.currentUser;
+    let title = 'Clinic Dashboard';
+    let sub = 'Overview of hospital operations, appointments and consultations';
 
-    // Refresh data for active view
-    if (viewId === 'dashboard') loadDashboardData();
-    if (viewId === 'patients') loadPatients();
-    if (viewId === 'doctors') loadDoctors();
-    if (viewId === 'appointments') loadAppointments();
-    if (viewId === 'records') loadMedicalRecords();
+    if (viewId === 'dashboard') {
+      if (user?.role === 'Admin') {
+        title = 'Administrator Command Center';
+        sub = 'Hospital-wide clinical control: Specialists, patient roster, and appointments';
+      } else if (user?.role === 'Doctor') {
+        title = 'Doctor Clinical Workspace';
+        sub = `Consultation schedule and clinical records for ${user.name}`;
+      } else if (user?.role === 'Patient') {
+        title = 'Patient Health Hub';
+        sub = `Welcome back, ${user.name}. Manage your appointments and medical records.`;
+      } else {
+        title = 'Clinic Dashboard';
+        sub = 'Please sign in to access MediFlow AI clinic system';
+      }
+    } else if (viewId === 'patients') {
+      if (user?.role === 'Patient') {
+        title = 'My Health Profile';
+        sub = 'Your personal clinical records, emergency details, and vitals';
+      } else {
+        title = 'Patients Management';
+        sub = 'Patient records, medical history, blood groups, and emergency contacts';
+      }
+    } else {
+      const info = viewTitles[viewId] || viewTitles['dashboard'];
+      title = info.title;
+      sub = info.sub;
+    }
+
+    const titleEl = document.getElementById('pageTitle');
+    const subEl = document.getElementById('pageSubtitle');
+    if (titleEl) titleEl.innerText = title;
+    if (subEl) subEl.innerText = sub;
+
+    // Refresh data for active view only if authenticated
+    if (state.token && state.currentUser) {
+      if (viewId === 'dashboard') loadDashboardData();
+      if (viewId === 'patients') loadPatients();
+      if (viewId === 'doctors') loadDoctors();
+      if (viewId === 'appointments') loadAppointments();
+      if (viewId === 'records') loadMedicalRecords();
+    }
   }
 
   // Setup Nav Click listeners
@@ -354,19 +415,25 @@
     const btnAddPat = document.getElementById('btnOpenAddPatient');
     const btnAddRec = document.getElementById('btnOpenAddRecord');
 
-    if (user && state.token) {
-      nameEl.innerText = user.name || 'User';
-      badgeEl.innerText = user.role || 'Patient';
-      badgeEl.className = `role-badge ${user.role.toLowerCase()}`;
-      avatarEl.innerText = (user.name || 'U').charAt(0).toUpperCase();
+    const setUserName = document.getElementById('setUserName');
+    const setUserEmail = document.getElementById('setUserEmail');
+    const setUserBadge = document.getElementById('setUserBadge');
 
-      btnLogin.style.display = 'none';
-      btnLogout.style.display = 'inline-flex';
+    const modalCloseBtn = document.querySelector('#modalAuth .modal-close');
+    const patNavSpan = document.querySelector('.nav-item[data-view="patients"] a span:last-child');
+
+    if (user && state.token) {
+      if (nameEl) nameEl.innerText = user.name || 'User';
+      if (badgeEl) {
+        badgeEl.innerText = user.role || 'Patient';
+        badgeEl.className = `role-badge ${(user.role || 'patient').toLowerCase()}`;
+      }
+      if (avatarEl) avatarEl.innerText = (user.name || 'U').charAt(0).toUpperCase();
+
+      if (btnLogin) btnLogin.style.display = 'none';
+      if (btnLogout) btnLogout.style.display = 'inline-flex';
 
       // Update settings card info
-      const setUserName = document.getElementById('setUserName');
-      const setUserEmail = document.getElementById('setUserEmail');
-      const setUserBadge = document.getElementById('setUserBadge');
       if (setUserName) setUserName.innerText = user.name || 'User';
       if (setUserEmail) setUserEmail.innerText = user.email || 'N/A';
       if (setUserBadge) {
@@ -378,18 +445,41 @@
       if (btnAddDoc) btnAddDoc.style.display = user.role === 'Admin' ? 'inline-flex' : 'none';
       if (btnAddPat) btnAddPat.style.display = (user.role === 'Admin' || user.role === 'Doctor') ? 'inline-flex' : 'none';
       if (btnAddRec) btnAddRec.style.display = (user.role === 'Admin' || user.role === 'Doctor') ? 'inline-flex' : 'none';
-    } else {
-      nameEl.innerText = 'Guest Visitor';
-      badgeEl.innerText = 'Unauthenticated';
-      badgeEl.className = 'role-badge';
-      avatarEl.innerText = '?';
 
-      btnLogin.style.display = 'inline-flex';
-      btnLogout.style.display = 'none';
+      // Allow closing auth modal when authenticated
+      if (modalCloseBtn) modalCloseBtn.style.display = 'block';
+
+      // Role-specific sidebar label
+      if (patNavSpan) {
+        patNavSpan.innerText = user.role === 'Patient' ? 'My Profile' : 'Patients';
+      }
+    } else {
+      if (nameEl) nameEl.innerText = 'Guest Visitor';
+      if (badgeEl) {
+        badgeEl.innerText = 'Unauthenticated';
+        badgeEl.className = 'role-badge';
+      }
+      if (avatarEl) avatarEl.innerText = '?';
+
+      if (btnLogin) btnLogin.style.display = 'inline-flex';
+      if (btnLogout) btnLogout.style.display = 'none';
+
+      if (setUserName) setUserName.innerText = 'Not Signed In';
+      if (setUserEmail) setUserEmail.innerText = 'Please sign in';
+      if (setUserBadge) {
+        setUserBadge.innerText = 'Guest';
+        setUserBadge.className = 'role-badge';
+      }
 
       if (btnAddDoc) btnAddDoc.style.display = 'none';
       if (btnAddPat) btnAddPat.style.display = 'none';
       if (btnAddRec) btnAddRec.style.display = 'none';
+
+      if (modalCloseBtn) modalCloseBtn.style.display = 'none';
+
+      if (patNavSpan) {
+        patNavSpan.innerText = 'Patients';
+      }
     }
 
     renderRoleDashboard();
@@ -397,14 +487,25 @@
 
   async function handleLogin(e) {
     if (e) e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    const email = (emailInput?.value || '').trim();
+    const password = passwordInput?.value || '';
+
+    if (!email || !password) {
+      showToast('Please enter both email and password.', 'error');
+      return;
+    }
 
     try {
       const data = await apiFetch('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: email.toLowerCase(), password })
       });
+
+      if (!data || !data.token || !data.user) {
+        throw new Error('Authentication response is missing user credentials.');
+      }
 
       state.token = data.token;
       state.currentUser = data.user;
@@ -415,6 +516,7 @@
 
       updateAuthUI();
       closeModal('modalAuth');
+      switchView('dashboard');
       showToast(`Welcome back, ${data.user.name}! (Role: ${data.user.role})`, 'success');
       refreshAllData();
     } catch (err) {
@@ -423,21 +525,49 @@
   }
 
   function quickLogin(email, password) {
-    document.getElementById('loginEmail').value = email;
-    document.getElementById('loginPassword').value = password;
-    handleLogin();
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    if (emailInput) emailInput.value = email;
+    if (passwordInput) passwordInput.value = password;
+    return handleLogin();
   }
 
   function logoutUser(notify = true) {
     state.token = null;
     state.currentUser = null;
+    state.doctors = [];
+    state.patients = [];
+    state.appointments = [];
+    state.records = [];
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
+
+    // Reset metric counters
+    const statP = document.getElementById('statTotalPatients');
+    const statA = document.getElementById('statTotalAppointments');
+    const statD = document.getElementById('statTotalDoctors');
+    const statR = document.getElementById('statTotalRecords');
+    if (statP) statP.innerText = '--';
+    if (statA) statA.innerText = '--';
+    if (statD) statD.innerText = '--';
+    if (statR) statR.innerText = '--';
+
+    const dashTbody = document.querySelector('#dashboardAppointmentsTable tbody');
+    if (dashTbody) {
+      dashTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 20px;">Please sign in to view appointments.</td></tr>`;
+    }
+
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+
     updateAuthUI();
+    switchView('dashboard');
     if (notify) showToast('You have been logged out.', 'info');
-    // Prompt login
     openModal('modalAuth');
   }
 
@@ -686,6 +816,8 @@
 
   // 5. Dashboard Data & Metrics
   async function loadDashboardData() {
+    if (!state.token || !state.currentUser) return;
+
     try {
       await Promise.all([
         loadPatients(),
@@ -694,8 +826,35 @@
         loadMedicalRecords()
       ]);
 
-      // Update Metric Counters
-      document.getElementById('statTotalPatients').innerText = state.patients.length;
+      const user = state.currentUser;
+      const patLabel = document.querySelector('.metric-card.patients .metric-info p');
+      const apptLabel = document.querySelector('.metric-card.appointments .metric-info p');
+      const docLabel = document.querySelector('.metric-card.doctors .metric-info p');
+      const recLabel = document.querySelector('.metric-card.ai .metric-info p');
+
+      if (user?.role === 'Patient') {
+        if (patLabel) patLabel.innerText = 'My Health Profile';
+        if (apptLabel) apptLabel.innerText = 'My Appointments';
+        if (docLabel) docLabel.innerText = 'Specialist Doctors';
+        if (recLabel) recLabel.innerText = 'My Medical Records';
+        const patStat = document.getElementById('statTotalPatients');
+        if (patStat) patStat.innerText = state.patients.length > 0 ? 'Active' : '--';
+      } else if (user?.role === 'Doctor') {
+        if (patLabel) patLabel.innerText = 'Assigned Patients';
+        if (apptLabel) apptLabel.innerText = 'Consultations';
+        if (docLabel) docLabel.innerText = 'Specialist Faculty';
+        if (recLabel) recLabel.innerText = 'Clinical Records';
+        const patStat = document.getElementById('statTotalPatients');
+        if (patStat) patStat.innerText = state.patients.length;
+      } else {
+        if (patLabel) patLabel.innerText = 'Registered Patients';
+        if (apptLabel) apptLabel.innerText = 'Total Appointments';
+        if (docLabel) docLabel.innerText = 'Specialist Doctors';
+        if (recLabel) recLabel.innerText = 'Clinical Records';
+        const patStat = document.getElementById('statTotalPatients');
+        if (patStat) patStat.innerText = state.patients.length;
+      }
+
       document.getElementById('statTotalAppointments').innerText = state.appointments.length;
       document.getElementById('statTotalDoctors').innerText = state.doctors.length;
       document.getElementById('statTotalRecords').innerText = state.records.length;
@@ -726,7 +885,9 @@
 
   function refreshAllData() {
     checkBackendHealth();
-    loadDashboardData();
+    if (state.token && state.currentUser) {
+      loadDashboardData();
+    }
   }
 
   // ==========================================================================
@@ -748,7 +909,7 @@
     const notes = document.getElementById('apptNotesInput').value;
 
     if (state.currentUser && state.currentUser.role === 'Patient') {
-      patient = state.currentUser.patientId;
+      patient = state.currentUser.patientId || (state.patients[0] && state.patients[0]._id);
     }
 
     if (!doctor || !patient || !appointmentDate || !appointmentTime || !reason) {
@@ -1136,7 +1297,7 @@
     const banner = document.getElementById('roleWorkspaceBanner');
     if (!banner) return;
     const user = state.currentUser;
-    if (!user) {
+    if (!user || !state.token) {
       banner.style.display = 'none';
       return;
     }
@@ -1431,12 +1592,16 @@
     checkBackendHealth();
     updateSettingsApiUI();
 
-    // If no user session, default to admin demo session for instant college demonstration
-    if (!state.currentUser) {
-      quickLogin('admin@smartclinic.com', 'admin123');
-    } else {
+    // Check if an existing authenticated session exists
+    if (state.currentUser && state.token) {
       updateAuthUI();
+      switchView('dashboard');
       refreshAllData();
+    } else {
+      // Fresh visitor: NO auto-login. Prompt with clean Login page modal.
+      updateAuthUI();
+      switchView('dashboard');
+      openModal('modalAuth');
     }
 
     // Ping healthcheck every 30s

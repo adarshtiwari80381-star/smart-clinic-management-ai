@@ -64,7 +64,7 @@
     }
 
     const forcedMode = localStorage.getItem('mediflow_api_mode');
-    if (forcedMode === 'render') {
+    if (forcedMode === 'render' || (window.location.search && window.location.search.includes('api=render'))) {
       return `${PRODUCTION_RENDER_URL}/api`;
     }
 

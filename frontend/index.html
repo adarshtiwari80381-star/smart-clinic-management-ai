@@ -110,18 +110,18 @@
         <div class="header-right">
           <!-- User Profile & Role Card -->
           <div class="user-profile-widget" id="userProfileWidget" title="Click to view details or switch account">
-            <div class="avatar-circle" id="userAvatar">A</div>
+            <div class="avatar-circle" id="userAvatar">?</div>
             <div class="user-details">
-              <span class="user-name" id="userName">Administrator</span>
-              <span class="role-badge admin" id="userRoleBadge">Admin</span>
+              <span class="user-name" id="userName">Guest Visitor</span>
+              <span class="role-badge" id="userRoleBadge">Unauthenticated</span>
             </div>
           </div>
 
           <!-- Login/Logout Toggle -->
-          <button class="btn-header-login" id="btnLoginModal" style="display: none;">
+          <button class="btn-header-login" id="btnLoginModal">
             <span>🔑</span> Sign In
           </button>
-          <button class="btn-header-logout" id="btnLogout">
+          <button class="btn-header-logout" id="btnLogout" style="display: none;">
             <span>🚪</span> Logout
           </button>
         </div>
@@ -438,9 +438,9 @@
           <div class="settings-card">
             <h4>👤 Active Account & Role</h4>
             <div style="margin-top: 14px; font-size: 0.88rem; color: #fff;">
-              <p><strong id="setUserName">Admin</strong></p>
-              <p style="color: var(--text-muted); font-size: 0.82rem;" id="setUserEmail">admin@smartclinic.com</p>
-              <p style="margin-top: 8px;"><span class="role-badge admin" id="setUserBadge">Admin</span></p>
+              <p><strong id="setUserName">Not Signed In</strong></p>
+              <p style="color: var(--text-muted); font-size: 0.82rem;" id="setUserEmail">Please sign in</p>
+              <p style="margin-top: 8px;"><span class="role-badge" id="setUserBadge">Guest</span></p>
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px;">
               <button class="btn-secondary" style="font-size: 0.82rem;" onclick="window.clinicApp.openModal('modalAuth')">
