@@ -257,6 +257,28 @@
   }
 
   // ==========================================================================
+  // DATE & TIME VALIDATION HELPERS
+  // ==========================================================================
+  function getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function validateAppointmentDate(inputEl) {
+    if (!inputEl) return;
+    const todayStr = getLocalDateString();
+    inputEl.min = todayStr;
+    if (inputEl.value && inputEl.value < todayStr) {
+      showToast('Appointment date cannot be in the past. Please select today or a future date.', 'error');
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      inputEl.value = getLocalDateString(tomorrow);
+    }
+  }
+
+  // ==========================================================================
   // MODAL CONTROLLERS
   // ==========================================================================
   function openModal(modalId) {
@@ -276,12 +298,17 @@
       if (modalId === 'modalBookAppointment') {
         const alert = document.getElementById('appointmentConflictAlert');
         if (alert) alert.classList.remove('show');
-        // Set default appointment date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        // Strict date validation: prevent past dates (min = today)
+        const todayStr = getLocalDateString();
         const dateInput = document.getElementById('apptDateInput');
-        if (dateInput && !dateInput.value) {
-          dateInput.value = tomorrow.toISOString().split('T')[0];
+        if (dateInput) {
+          dateInput.min = todayStr;
+          if (!dateInput.value || dateInput.value < todayStr) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            dateInput.value = getLocalDateString(tomorrow);
+          }
         }
         // Adjust for Patient role
         const patGroup = document.getElementById('appointmentPatientGroup');
@@ -914,6 +941,20 @@
 
     if (!doctor || !patient || !appointmentDate || !appointmentTime || !reason) {
       showToast('Please select a patient, doctor, date, time slot, and reason.', 'error');
+      return;
+    }
+
+    // ==========================================
+    // CRITICAL REQUIREMENT: STRICT PAST DATE CHECK
+    // ==========================================
+    const todayStr = getLocalDateString();
+    const selectedDateStr = String(appointmentDate).substring(0, 10);
+    if (selectedDateStr < todayStr) {
+      if (alertBox && alertMsg) {
+        alertMsg.innerText = 'Appointment date cannot be in the past. Please select today or a future date.';
+        alertBox.classList.add('show');
+      }
+      showToast('Appointment date cannot be in the past. Please select today or a future date.', 'error');
       return;
     }
 
@@ -1604,6 +1645,12 @@
       openModal('modalAuth');
     }
 
+    // Initialize appointment date input with today as minimum
+    const apptDateInput = document.getElementById('apptDateInput');
+    if (apptDateInput) {
+      apptDateInput.min = getLocalDateString();
+    }
+
     // Ping healthcheck every 30s
     setInterval(checkBackendHealth, 30000);
   });
@@ -1612,6 +1659,7 @@
   window.clinicApp = {
     openModal,
     closeModal,
+    validateAppointmentDate,
     switchView,
     quickLogin,
     handleLogin,

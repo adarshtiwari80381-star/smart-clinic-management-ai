@@ -124,6 +124,24 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
+    // ==========================================
+    // CRITICAL REQUIREMENT: STRICT PAST DATE CHECK
+    // ==========================================
+    const now = new Date();
+    const utcDateStr = now.toISOString().split('T')[0];
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${day}`;
+    const reqDateStr = String(appointmentDate).substring(0, 10);
+
+    if (reqDateStr < utcDateStr && reqDateStr < localDateStr) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment date cannot be in the past. Please select today or a future date.'
+      });
+    }
+
     // Verify doctor exists
     const doctorExists = await Doctor.findById(doctor);
     if (!doctorExists) {
@@ -228,6 +246,23 @@ exports.updateAppointment = async (req, res, next) => {
     const targetDoctor = req.body.doctor || appointment.doctor;
     const targetDate = req.body.appointmentDate || appointment.appointmentDate;
     const targetTime = req.body.appointmentTime || appointment.appointmentTime;
+
+    if (req.body.appointmentDate && req.body.status !== 'Cancelled') {
+      const now = new Date();
+      const utcDateStr = now.toISOString().split('T')[0];
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const localDateStr = `${year}-${month}-${day}`;
+      const reqDateStr = String(req.body.appointmentDate).substring(0, 10);
+
+      if (reqDateStr < utcDateStr && reqDateStr < localDateStr) {
+        return res.status(400).json({
+          success: false,
+          message: 'Appointment date cannot be in the past. Please select today or a future date.'
+        });
+      }
+    }
 
     if (
       (req.body.appointmentDate || req.body.appointmentTime || req.body.doctor) &&
