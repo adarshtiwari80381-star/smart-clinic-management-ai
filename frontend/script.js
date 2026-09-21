@@ -394,14 +394,14 @@
           return;
         }
       } else if (user.role === 'Doctor') {
-        if (viewId === 'settings' || viewId === 'reports') {
-          showToast('Unauthorized access: System settings and administrative reports are restricted to Administrators.', 'error');
+        if (viewId === 'settings' || viewId === 'reports' || viewId === 'ai-assistant') {
+          showToast('Notice: AI Health Assistant is patient-facing. Doctors use the Consultation Workspace.', 'info');
           switchView('dashboard');
           return;
         }
       } else if (user.role === 'Admin') {
-        if (viewId === 'consultation') {
-          showToast('Unauthorized access: Consultation workspace is reserved for medical doctors.', 'error');
+        if (viewId === 'consultation' || viewId === 'ai-assistant') {
+          showToast('Notice: AI Health Assistant is reserved for patients.', 'info');
           switchView('dashboard');
           return;
         }
@@ -1552,11 +1552,19 @@
         <div class="ai-disclaimer-notice" style="margin-top: 10px; padding: 8px 12px; background: rgba(245, 158, 11, 0.12); border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 0.76rem; color: #fde68a;">
           ⚖️ <strong>Medical Disclaimer:</strong> ${escapeHtml(res.disclaimer)}
         </div>` : '';
+      const appointmentCtaHtml = res.showAppointmentCta ? `
+        <div class="ai-appointment-cta" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <span style="font-size: 0.83rem; color: #cbd5e1;">Need an in-person medical evaluation?</span>
+          <button class="btn-primary" style="font-size: 0.8rem; padding: 7px 16px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;" onclick="window.clinicApp.openModal('modalBookAppointment')">
+            📅 Book Doctor Appointment
+          </button>
+        </div>` : '';
 
       const aiMsg = document.createElement('div');
       aiMsg.className = `chat-bubble ${res.isEmergency ? 'emergency-msg' : 'ai-msg'}`;
       aiMsg.innerHTML = `
         ${formattedHtml}
+        ${appointmentCtaHtml}
         ${disclaimerHtml}
         <span class="chat-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       `;
@@ -1580,6 +1588,8 @@
     // Headers
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h3>$1</h3>');
+    // Horizontal rules
+    html = html.replace(/^---$/gim, '<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0;">');
     // Bold
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     // Italics
@@ -1589,8 +1599,8 @@
     // Bullet points
     html = html.replace(/^• (.*$)/gim, '<li>$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
-    // Wrap bullet points
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    // Wrap groups of consecutive <li>...</li> in <ul>...</ul>
+    html = html.replace(/((?:<li>.*?<\/li>\s*)+)/gs, '<ul style="padding-left: 20px; margin: 8px 0;">$1</ul>');
     // Line breaks
     html = html.replace(/\n\n/g, '<br><br>');
     return html;
