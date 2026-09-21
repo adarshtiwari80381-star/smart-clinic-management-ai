@@ -14,12 +14,12 @@ router.use(protect);
 router
   .route('/')
   .get(getMedicalRecords)
-  .post(authorizeRoles('Admin', 'Doctor'), createMedicalRecord);
+  .post(authorizeRoles('Doctor'), createMedicalRecord);
 
 router
   .route('/:id')
   .get(getMedicalRecord)
-  .put(authorizeRoles('Admin', 'Doctor'), updateMedicalRecord)
-  .delete(authorizeRoles('Admin', 'Doctor'), deleteMedicalRecord);
+  .put(authorizeRoles('Doctor'), updateMedicalRecord)
+  .delete(authorizeRoles('Doctor'), deleteMedicalRecord);
 
 module.exports = router;

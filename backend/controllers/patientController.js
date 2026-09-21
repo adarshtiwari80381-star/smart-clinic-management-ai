@@ -82,14 +82,12 @@ exports.getPatient = async (req, res, next) => {
 
 // @desc    Create new patient
 // @route   POST /api/patients
-// @access  Private (Admin, Doctor)
+// @access  Private (Blocked for Admin/Doctor - Public registration only)
 exports.createPatient = async (req, res, next) => {
   try {
-    const patient = await Patient.create(req.body);
-
-    res.status(201).json({
-      success: true,
-      data: patient
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Admin cannot register patients. Patient registration is handled through the public patient registration flow.'
     });
   } catch (err) {
     next(err);
@@ -98,9 +96,23 @@ exports.createPatient = async (req, res, next) => {
 
 // @desc    Update patient
 // @route   PUT /api/patients/:id
-// @access  Private (Admin, Doctor, or the Patient themselves)
+// @access  Private (Patient self-update only)
 exports.updatePatient = async (req, res, next) => {
   try {
+    if (req.user.role === 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin has read-only monitoring access and cannot edit patients.'
+      });
+    }
+
+    if (req.user.role === 'Doctor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Doctors cannot modify patient administrative profile information.'
+      });
+    }
+
     let patient = await Patient.findById(req.params.id);
 
     if (!patient) {
@@ -113,8 +125,7 @@ exports.updatePatient = async (req, res, next) => {
     // Patient can only update their own record
     if (
       req.user.role === 'Patient' &&
-      req.user.patientId &&
-      patient._id.toString() !== req.user.patientId.toString()
+      (!req.user.patientId || patient._id.toString() !== req.user.patientId.toString())
     ) {
       return res.status(403).json({
         success: false,
@@ -122,7 +133,16 @@ exports.updatePatient = async (req, res, next) => {
       });
     }
 
-    patient = await Patient.findByIdAndUpdate(req.params.id, req.body, {
+    // Only allow updating personal contact details
+    const allowedUpdates = {
+      phone: req.body.phone,
+      address: req.body.address,
+      emergencyContact: req.body.emergencyContact,
+      allergies: req.body.allergies
+    };
+    if (req.body.name) allowedUpdates.name = req.body.name;
+
+    patient = await Patient.findByIdAndUpdate(req.params.id, allowedUpdates, {
       new: true,
       runValidators: true
     });
@@ -138,27 +158,12 @@ exports.updatePatient = async (req, res, next) => {
 
 // @desc    Delete patient
 // @route   DELETE /api/patients/:id
-// @access  Private (Admin only)
+// @access  Private (Blocked: Admin is monitoring only)
 exports.deletePatient = async (req, res, next) => {
   try {
-    const patient = await Patient.findById(req.params.id);
-
-    if (!patient) {
-      return res.status(404).json({
-        success: false,
-        message: `Patient not found with id of ${req.params.id}`
-      });
-    }
-
-    await Patient.findByIdAndDelete(req.params.id);
-
-    // Also remove appointments and records if admin wants clean cascade
-    await Appointment.deleteMany({ patient: req.params.id });
-
-    res.status(200).json({
-      success: true,
-      data: {},
-      message: 'Patient and associated appointments successfully removed.'
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Admin has read-only monitoring access and cannot delete patients.'
     });
   } catch (err) {
     next(err);

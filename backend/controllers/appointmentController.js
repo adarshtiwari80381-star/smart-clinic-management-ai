@@ -101,21 +101,36 @@ exports.getAppointment = async (req, res, next) => {
 
 // @desc    Create new appointment with Conflict Checking
 // @route   POST /api/appointments
-// @access  Private (Admin, Doctor, Patient)
+// @access  Private (Patient only)
 exports.createAppointment = async (req, res, next) => {
   try {
+    // Strict RBAC: Only Patient role can book appointments
+    if (req.user.role !== 'Patient') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Appointment booking is reserved for patients only. Admin and Doctors cannot book appointments.'
+      });
+    }
+
+    if (!req.user.patientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No patient record linked to this user account.'
+      });
+    }
+
     let { doctor, patient, appointmentDate, appointmentTime, reason, type, notes } = req.body;
 
-    // If logged in as Patient, ensure the appointment is booked for them
-    if (req.user.role === 'Patient') {
-      if (!req.user.patientId) {
-        return res.status(400).json({
-          success: false,
-          message: 'No patient record linked to this user account.'
-        });
-      }
-      patient = req.user.patientId;
+    // Strict ownership enforcement: Patient cannot book for another patient
+    if (patient && patient.toString() !== req.user.patientId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You cannot create an appointment for another patient.'
+      });
     }
+
+    // Always enforce logged-in patient's identity
+    patient = req.user.patientId;
 
     if (!doctor || !patient || !appointmentDate || !appointmentTime || !reason) {
       return res.status(400).json({
@@ -217,6 +232,12 @@ exports.updateAppointment = async (req, res, next) => {
     }
 
     // Check RBAC permissions
+    if (req.user.role === 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin has read-only access to appointments.'
+      });
+    }
     if (req.user.role === 'Patient') {
       if (appointment.patient.toString() !== req.user.patientId?.toString()) {
         return res.status(403).json({
@@ -311,6 +332,13 @@ exports.deleteAppointment = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: `Appointment not found with id of ${req.params.id}`
+      });
+    }
+
+    if (req.user.role === 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin has read-only monitoring access and cannot delete appointments.'
       });
     }
 

@@ -282,6 +282,28 @@
   // MODAL CONTROLLERS
   // ==========================================================================
   function openModal(modalId) {
+    // Role-level guards for modal actions
+    if (modalId === 'modalBookAppointment' && state.currentUser?.role === 'Admin') {
+      showToast('Access denied: Admin accounts are for monitoring only. Appointment booking is reserved for patients.', 'error');
+      return;
+    }
+    if (modalId === 'modalBookAppointment' && state.currentUser?.role === 'Doctor') {
+      showToast('Access denied: Doctors cannot book patient appointments.', 'error');
+      return;
+    }
+    if (modalId === 'modalAddPatient' && state.currentUser?.role === 'Admin') {
+      showToast('Access denied: Admin cannot add patients directly. Patient registration is handled via public registration.', 'error');
+      return;
+    }
+    if (modalId === 'modalAddRecord' && state.currentUser?.role === 'Admin') {
+      showToast('Access denied: Admin cannot create medical records. Clinical documentation is reserved for doctors.', 'error');
+      return;
+    }
+    if (modalId === 'modalAddRecord' && state.currentUser?.role === 'Patient') {
+      showToast('Access denied: Patients cannot author clinical medical records.', 'error');
+      return;
+    }
+
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.add('active');
@@ -353,11 +375,45 @@
     'doctors': { title: 'Specialist Directory', sub: 'Medical faculty, consulting hours, departments and rooms' },
     'appointments': { title: 'Appointments & Scheduling', sub: 'Real-time booking with automated conflict checking' },
     'records': { title: 'Medical Records', sub: 'Clinical notes, vital measurements, prescriptions and follow-ups' },
+    'reports': { title: 'Clinic System Reports & Monitoring', sub: 'Hospital performance, consultation metrics, and appointment pipeline' },
+    'consultation': { title: 'Doctor Clinical Consultation Workspace', sub: 'Patient examination, diagnosis, vital recordings, and prescriptions' },
     'ai-assistant': { title: 'AI Health Assistant', sub: 'Clinical intelligence engine for general wellness and triage' },
     'settings': { title: 'Clinic System Settings', sub: 'Facility preferences, active account details, and AI triage status' }
   };
 
   function switchView(viewId) {
+    const user = state.currentUser;
+
+    // RBAC Route Guards: Prevent unauthorized view switching
+    if (user) {
+      if (user.role === 'Patient') {
+        if (viewId === 'settings' || viewId === 'reports' || viewId === 'consultation') {
+          showToast('Unauthorized access: Patients cannot access administrative settings or medical workspaces.', 'error');
+          switchView('dashboard');
+          return;
+        }
+      } else if (user.role === 'Doctor') {
+        if (viewId === 'settings' || viewId === 'reports') {
+          showToast('Unauthorized access: System settings and administrative reports are restricted to Administrators.', 'error');
+          switchView('dashboard');
+          return;
+        }
+      } else if (user.role === 'Admin') {
+        if (viewId === 'consultation') {
+          showToast('Unauthorized access: Consultation workspace is reserved for medical doctors.', 'error');
+          switchView('dashboard');
+          return;
+        }
+      }
+    } else {
+      // Unauthenticated / Guest
+      if (viewId !== 'dashboard' && viewId !== 'doctors' && viewId !== 'ai-assistant') {
+        showToast('Please sign in to access this clinic section.', 'info');
+        openModal('modalAuth');
+        return;
+      }
+    }
+
     state.activeView = viewId;
 
     // Update Sidebar
@@ -371,20 +427,19 @@
     });
 
     // Dynamic Header Title & Subtitle based on active role
-    const user = state.currentUser;
     let title = 'Clinic Dashboard';
     let sub = 'Overview of hospital operations, appointments and consultations';
 
     if (viewId === 'dashboard') {
       if (user?.role === 'Admin') {
         title = 'Administrator Command Center';
-        sub = 'Hospital-wide clinical control: Specialists, patient roster, and appointments';
+        sub = 'Hospital-wide monitoring: Specialists, registered patients, and scheduled appointments';
       } else if (user?.role === 'Doctor') {
         title = 'Doctor Clinical Workspace';
         sub = `Consultation schedule and clinical records for ${user.name}`;
       } else if (user?.role === 'Patient') {
         title = 'Patient Health Hub';
-        sub = `Welcome back, ${user.name}. Manage your appointments and medical records.`;
+        sub = `Welcome back, ${user.name}. Manage your appointments and personal records.`;
       } else {
         title = 'Clinic Dashboard';
         sub = 'Please sign in to access MediFlow AI clinic system';
@@ -393,9 +448,34 @@
       if (user?.role === 'Patient') {
         title = 'My Health Profile';
         sub = 'Your personal clinical records, emergency details, and vitals';
+      } else if (user?.role === 'Doctor') {
+        title = 'My Patients Roster';
+        sub = 'Patients scheduled for consultation or under your clinical care';
       } else {
-        title = 'Patients Management';
-        sub = 'Patient records, medical history, blood groups, and emergency contacts';
+        title = 'Registered Patients Directory';
+        sub = 'System-wide patient roster, medical history, blood groups, and emergency contacts (Monitoring)';
+      }
+    } else if (viewId === 'appointments') {
+      if (user?.role === 'Patient') {
+        title = 'My Scheduled Appointments';
+        sub = 'Your booked doctor consultations and real-time status';
+      } else if (user?.role === 'Doctor') {
+        title = 'My Clinical Consultations';
+        sub = 'Patients scheduled for examination and medical review with you';
+      } else {
+        title = 'Appointments Monitoring Directory';
+        sub = 'Comprehensive clinic schedule overview with conflict prevention status';
+      }
+    } else if (viewId === 'records') {
+      if (user?.role === 'Patient') {
+        title = 'My Medical Records';
+        sub = 'Personal clinical diagnoses, prescribed medications, and physician notes';
+      } else if (user?.role === 'Doctor') {
+        title = 'Clinical Medical Records';
+        sub = 'Clinical case files, diagnoses, prescriptions, and notes authored by doctors';
+      } else {
+        title = 'Medical Records Audit & Monitoring';
+        sub = 'Administrative clinical documentation archive (Read-only monitoring)';
       }
     } else {
       const info = viewTitles[viewId] || viewTitles['dashboard'];
@@ -415,6 +495,8 @@
       if (viewId === 'doctors') loadDoctors();
       if (viewId === 'appointments') loadAppointments();
       if (viewId === 'records') loadMedicalRecords();
+      if (viewId === 'reports') loadReportsData();
+      if (viewId === 'consultation') populateConsultationDropdown();
     }
   }
 
@@ -426,6 +508,170 @@
       if (view) switchView(view);
     });
   });
+
+  // Dynamic Navigation Generator by Role
+  function updateNavForRole() {
+    const navMenu = document.getElementById('sidebarNavMenu');
+    if (!navMenu) return;
+    const user = state.currentUser;
+    const role = user ? user.role : 'Guest';
+
+    let items = [];
+    if (role === 'Admin') {
+      items = [
+        { view: 'dashboard', icon: '📊', label: 'Dashboard' },
+        { view: 'patients', icon: '👥', label: 'Patients' },
+        { view: 'doctors', icon: '🩺', label: 'Doctors' },
+        { view: 'appointments', icon: '📅', label: 'Appointments' },
+        { view: 'records', icon: '📋', label: 'Medical Records' },
+        { view: 'reports', icon: '📈', label: 'Reports' },
+        { view: 'settings', icon: '⚙️', label: 'Settings' },
+        { view: 'logout', icon: '🚪', label: 'Logout', action: () => logoutUser(true) }
+      ];
+    } else if (role === 'Patient') {
+      items = [
+        { view: 'dashboard', icon: '📊', label: 'Dashboard' },
+        { view: 'patients', icon: '👤', label: 'My Profile' },
+        { view: 'book-appointment', icon: '➕', label: 'Book Appointment', action: () => openModal('modalBookAppointment') },
+        { view: 'appointments', icon: '📅', label: 'My Appointments' },
+        { view: 'records', icon: '📋', label: 'My Medical Records' },
+        { view: 'ai-assistant', icon: '🤖', label: 'AI Health Assistant', badge: 'AI LIVE' },
+        { view: 'logout', icon: '🚪', label: 'Logout', action: () => logoutUser(true) }
+      ];
+    } else if (role === 'Doctor') {
+      items = [
+        { view: 'dashboard', icon: '📊', label: 'Dashboard' },
+        { view: 'appointments', icon: '📅', label: 'My Appointments' },
+        { view: 'patients', icon: '👥', label: 'My Patients' },
+        { view: 'records', icon: '📋', label: 'Medical Records' },
+        { view: 'consultation', icon: '🩺', label: 'Consultation' },
+        { view: 'logout', icon: '🚪', label: 'Logout', action: () => logoutUser(true) }
+      ];
+    } else {
+      items = [
+        { view: 'dashboard', icon: '📊', label: 'Dashboard' },
+        { view: 'doctors', icon: '🩺', label: 'Specialist Directory' },
+        { view: 'ai-assistant', icon: '🤖', label: 'AI Health Assistant', badge: 'AI LIVE' },
+        { view: 'login', icon: '🔑', label: 'Sign In', action: () => openModal('modalAuth') }
+      ];
+    }
+
+    navMenu.innerHTML = items.map(item => `
+      <li class="nav-item ${state.activeView === item.view ? 'active' : ''}" data-view="${item.view}">
+        <a href="#${item.view}">
+          <span class="nav-icon">${item.icon}</span>
+          <span>${item.label}</span>
+          ${item.badge ? `<span class="nav-badge-ai">${item.badge}</span>` : ''}
+        </a>
+      </li>
+    `).join('');
+
+    navMenu.querySelectorAll('.nav-item').forEach((li, idx) => {
+      const itemConfig = items[idx];
+      li.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (itemConfig.action) {
+          itemConfig.action();
+        } else {
+          switchView(itemConfig.view);
+        }
+      });
+    });
+  }
+
+  // Auth Modal Tab Switcher (Sign In vs Register as Patient)
+  function switchAuthTab(tab) {
+    const loginCont = document.getElementById('authLoginFormContainer');
+    const regCont = document.getElementById('authRegisterFormContainer');
+    const tabLogin = document.getElementById('tabBtnSignIn');
+    const tabReg = document.getElementById('tabBtnRegister');
+
+    if (tab === 'register') {
+      if (loginCont) loginCont.style.display = 'none';
+      if (regCont) regCont.style.display = 'block';
+      if (tabLogin) {
+        tabLogin.style.background = 'rgba(255,255,255,0.05)';
+        tabLogin.style.borderColor = 'var(--border-subtle)';
+        tabLogin.style.color = 'var(--text-muted)';
+      }
+      if (tabReg) {
+        tabReg.style.background = 'rgba(14, 165, 233, 0.2)';
+        tabReg.style.borderColor = 'var(--primary)';
+        tabReg.style.color = '#fff';
+      }
+    } else {
+      if (loginCont) loginCont.style.display = 'block';
+      if (regCont) regCont.style.display = 'none';
+      if (tabLogin) {
+        tabLogin.style.background = 'rgba(14, 165, 233, 0.2)';
+        tabLogin.style.borderColor = 'var(--primary)';
+        tabLogin.style.color = '#fff';
+      }
+      if (tabReg) {
+        tabReg.style.background = 'rgba(255,255,255,0.05)';
+        tabReg.style.borderColor = 'var(--border-subtle)';
+        tabReg.style.color = 'var(--text-muted)';
+      }
+    }
+  }
+
+  // Public Patient Registration Handler
+  async function handleRegisterPatient(e) {
+    if (e) e.preventDefault();
+    const name = document.getElementById('regName')?.value.trim();
+    const email = document.getElementById('regEmail')?.value.trim();
+    const password = document.getElementById('regPassword')?.value;
+    const phone = document.getElementById('regPhone')?.value.trim();
+    const age = Number(document.getElementById('regAge')?.value || 25);
+    const gender = document.getElementById('regGender')?.value;
+    const bloodGroup = document.getElementById('regBloodGroup')?.value;
+    const address = document.getElementById('regAddress')?.value.trim();
+
+    if (!name || !email || !password || !phone) {
+      showToast('Please complete all required fields.', 'error');
+      return;
+    }
+
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters.', 'error');
+      return;
+    }
+
+    try {
+      const data = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email: email.toLowerCase(),
+          password,
+          phone,
+          age,
+          gender,
+          bloodGroup,
+          address
+        })
+      });
+
+      if (!data || !data.token || !data.user) {
+        throw new Error('Registration failed to return user credentials.');
+      }
+
+      state.token = data.token;
+      state.currentUser = data.user;
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+
+      updateAuthUI();
+      closeModal('modalAuth');
+      switchView('dashboard');
+      showToast(`Welcome to MediFlow AI, ${data.user.name}! Your patient account is active.`, 'success');
+      refreshAllData();
+    } catch (err) {
+      showToast(err.message || 'Registration failed', 'error');
+    }
+  }
 
   // ==========================================================================
   // AUTHENTICATION & ROLE MANAGEMENT
@@ -441,13 +687,14 @@
     const btnAddDoc = document.getElementById('btnOpenAddDoctor');
     const btnAddPat = document.getElementById('btnOpenAddPatient');
     const btnAddRec = document.getElementById('btnOpenAddRecord');
+    const btnDashBookAppt = document.getElementById('btnDashBookAppt');
+    const btnOpenScheduleAppt = document.getElementById('btnOpenScheduleAppt');
 
     const setUserName = document.getElementById('setUserName');
     const setUserEmail = document.getElementById('setUserEmail');
     const setUserBadge = document.getElementById('setUserBadge');
 
     const modalCloseBtn = document.querySelector('#modalAuth .modal-close');
-    const patNavSpan = document.querySelector('.nav-item[data-view="patients"] a span:last-child');
 
     if (user && state.token) {
       if (nameEl) nameEl.innerText = user.name || 'User';
@@ -469,17 +716,15 @@
       }
 
       // Role-based visibility
+      // Admin: Cannot add patient, cannot book appointment, cannot add record
       if (btnAddDoc) btnAddDoc.style.display = user.role === 'Admin' ? 'inline-flex' : 'none';
-      if (btnAddPat) btnAddPat.style.display = (user.role === 'Admin' || user.role === 'Doctor') ? 'inline-flex' : 'none';
-      if (btnAddRec) btnAddRec.style.display = (user.role === 'Admin' || user.role === 'Doctor') ? 'inline-flex' : 'none';
+      if (btnAddPat) btnAddPat.style.display = 'none'; // Patient creation is only via self-registration
+      if (btnAddRec) btnAddRec.style.display = user.role === 'Doctor' ? 'inline-flex' : 'none';
+      if (btnDashBookAppt) btnDashBookAppt.style.display = user.role === 'Patient' ? 'inline-flex' : 'none';
+      if (btnOpenScheduleAppt) btnOpenScheduleAppt.style.display = user.role === 'Patient' ? 'inline-flex' : 'none';
 
       // Allow closing auth modal when authenticated
       if (modalCloseBtn) modalCloseBtn.style.display = 'block';
-
-      // Role-specific sidebar label
-      if (patNavSpan) {
-        patNavSpan.innerText = user.role === 'Patient' ? 'My Profile' : 'Patients';
-      }
     } else {
       if (nameEl) nameEl.innerText = 'Guest Visitor';
       if (badgeEl) {
@@ -501,14 +746,13 @@
       if (btnAddDoc) btnAddDoc.style.display = 'none';
       if (btnAddPat) btnAddPat.style.display = 'none';
       if (btnAddRec) btnAddRec.style.display = 'none';
+      if (btnDashBookAppt) btnDashBookAppt.style.display = 'none';
+      if (btnOpenScheduleAppt) btnOpenScheduleAppt.style.display = 'none';
 
       if (modalCloseBtn) modalCloseBtn.style.display = 'none';
-
-      if (patNavSpan) {
-        patNavSpan.innerText = 'Patients';
-      }
     }
 
+    updateNavForRole();
     renderRoleDashboard();
   }
 
@@ -653,9 +897,11 @@
         <div class="doctor-footer">
           <div class="fee-tag">$${doc.consultationFee || 50} <span>/ visit</span></div>
           <div style="display: flex; gap: 6px; align-items: center;">
-            <button class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="window.clinicApp.quickBookDoctor('${doc._id}')">
-              Book
-            </button>
+            ${state.currentUser?.role === 'Patient' ? `
+              <button class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="window.clinicApp.quickBookDoctor('${doc._id}')">
+                Book
+              </button>
+            ` : ''}
             ${state.currentUser?.role === 'Admin' ? `
               <button class="btn-icon edit" title="Edit Doctor" onclick="window.clinicApp.openEditDoctor('${doc._id}')">✏️</button>
               <button class="btn-icon danger" title="Delete Doctor" onclick="window.clinicApp.deleteDoctor('${doc._id}')">🗑️</button>
@@ -712,12 +958,11 @@
         <td style="text-align: right;">
           <div class="action-btns" style="justify-content: flex-end;">
             <button class="btn-icon" title="View Patient Profile" onclick="window.clinicApp.viewPatientProfile('${p._id}')">👤</button>
-            <button class="btn-icon" title="Book Appointment" onclick="window.clinicApp.quickBookPatient('${p._id}')">📅</button>
-            ${(state.currentUser?.role === 'Admin' || state.currentUser?.role === 'Doctor') ? `
-              <button class="btn-icon edit" title="Edit Patient" onclick="window.clinicApp.openEditPatient('${p._id}')">✏️</button>
+            ${state.currentUser?.role === 'Doctor' ? `
+              <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" title="Consult Patient" onclick="window.clinicApp.startConsultationForPatient('${p._id}')">🩺 Consult</button>
             ` : ''}
-            ${state.currentUser && state.currentUser.role === 'Admin' ? `
-              <button class="btn-icon danger" title="Delete Patient" onclick="window.clinicApp.deletePatient('${p._id}')">🗑️</button>
+            ${state.currentUser?.role === 'Patient' ? `
+              <button class="btn-icon edit" title="Edit Personal Details" onclick="window.clinicApp.openEditPatient('${p._id}')">✏️</button>
             ` : ''}
           </div>
         </td>
@@ -775,14 +1020,17 @@
           <td><span class="status-pill ${statusClass}">● ${a.status}</span></td>
           <td style="text-align: right;">
             <div class="action-btns" style="justify-content: flex-end;">
-              ${(state.currentUser?.role === 'Admin' || state.currentUser?.role === 'Doctor') && a.status === 'Scheduled' ? `
+              ${state.currentUser?.role === 'Doctor' && a.status === 'Scheduled' ? `
                 <button class="btn-icon" title="Confirm Appointment" onclick="window.clinicApp.updateAppointmentStatus('${a._id}', 'Confirmed')">✅</button>
               ` : ''}
-              ${(state.currentUser?.role === 'Admin' || state.currentUser?.role === 'Doctor') && (a.status === 'Confirmed' || a.status === 'Scheduled') ? `
-                <button class="btn-icon" title="Mark Completed" onclick="window.clinicApp.updateAppointmentStatus('${a._id}', 'Completed')">🩺</button>
+              ${state.currentUser?.role === 'Doctor' && (a.status === 'Confirmed' || a.status === 'Scheduled') ? `
+                <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" title="Start Consultation & Complete" onclick="window.clinicApp.startConsultationForAppointment('${a._id}')">🩺 Consult</button>
               ` : ''}
-              ${a.status !== 'Cancelled' && a.status !== 'Completed' ? `
+              ${(state.currentUser?.role === 'Patient' || state.currentUser?.role === 'Doctor') && a.status !== 'Cancelled' && a.status !== 'Completed' ? `
                 <button class="btn-icon danger" title="Cancel Appointment" onclick="window.clinicApp.cancelAppointment('${a._id}')">❌</button>
+              ` : ''}
+              ${state.currentUser?.role === 'Admin' ? `
+                <span style="font-size: 0.75rem; color: var(--text-dim); padding: 4px 8px;">Audit Only</span>
               ` : ''}
             </div>
           </td>
@@ -830,7 +1078,7 @@
               <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.78rem;" onclick="window.clinicApp.viewRecordDetails('${r._id}')">
                 View
               </button>
-              ${(state.currentUser?.role === 'Admin' || state.currentUser?.role === 'Doctor') ? `
+              ${state.currentUser?.role === 'Doctor' ? `
                 <button class="btn-icon edit" title="Edit Record" onclick="window.clinicApp.openEditRecord('${r._id}')">✏️</button>
                 <button class="btn-icon danger" title="Delete Record" onclick="window.clinicApp.deleteRecord('${r._id}')">🗑️</button>
               ` : ''}
@@ -923,24 +1171,25 @@
   async function handleCreateAppointment(e) {
     e.preventDefault();
 
+    if (state.currentUser?.role !== 'Patient') {
+      showToast('Only patients can book appointments. Administrators and Doctors cannot book appointments.', 'error');
+      return;
+    }
+
     const alertBox = document.getElementById('appointmentConflictAlert');
     const alertMsg = document.getElementById('appointmentConflictMessage');
     if (alertBox) alertBox.classList.remove('show');
 
     const doctor = document.getElementById('apptDoctorSelect').value;
-    let patient = document.getElementById('apptPatientSelect').value;
+    let patient = state.currentUser?.patientId || (state.patients[0] && state.patients[0]._id);
     const appointmentDate = document.getElementById('apptDateInput').value;
     const appointmentTime = document.getElementById('apptTimeSelect').value;
     const reason = document.getElementById('apptReasonInput').value;
     const type = document.getElementById('apptTypeSelect').value;
     const notes = document.getElementById('apptNotesInput').value;
 
-    if (state.currentUser && state.currentUser.role === 'Patient') {
-      patient = state.currentUser.patientId || (state.patients[0] && state.patients[0]._id);
-    }
-
     if (!doctor || !patient || !appointmentDate || !appointmentTime || !reason) {
-      showToast('Please select a patient, doctor, date, time slot, and reason.', 'error');
+      showToast('Please select a doctor, date, time slot, and reason.', 'error');
       return;
     }
 
@@ -1024,6 +1273,10 @@
   // ==========================================================================
   async function handleCreatePatient(e) {
     e.preventDefault();
+    if (state.currentUser?.role === 'Admin') {
+      showToast('Administrators monitor existing records. Patients must self-register via the public registration portal.', 'error');
+      return;
+    }
     const name = document.getElementById('patNameInput').value;
     const phone = document.getElementById('patPhoneInput').value;
     const email = document.getElementById('patEmailInput').value;
@@ -1054,6 +1307,10 @@
   }
 
   async function deletePatient(id) {
+    if (state.currentUser?.role === 'Admin') {
+      showToast('Administrators cannot delete patient records. The Admin role is strictly for system monitoring.', 'error');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this patient? All associated appointments will be removed.')) return;
     try {
       await apiFetch(`/patients/${id}`, { method: 'DELETE' });
@@ -1096,6 +1353,10 @@
   // ==========================================================================
   async function handleCreateRecord(e) {
     e.preventDefault();
+    if (state.currentUser?.role !== 'Doctor') {
+      showToast('Only doctors can author and submit clinical medical records.', 'error');
+      return;
+    }
     const patient = document.getElementById('recPatientSelect').value;
     const doctor = document.getElementById('recDoctorSelect').value;
     const visitDate = document.getElementById('recVisitDate').value;
@@ -1349,10 +1610,12 @@
     if (user.role === 'Admin') {
       banner.innerHTML = `
         <div>
-          <h3>👑 Administrator Command Center</h3>
-          <p>Hospital-wide clinical control: Specialists, patient roster, scheduling conflict resolution, and medical records.</p>
+          <h3>👑 Administrator System Monitor: Welcome, ${user.name}</h3>
+          <p>Hospital oversight & audit control: View clinics, specialists, patient registry, scheduling metrics, and clinical records.</p>
         </div>
-        <span class="role-badge admin">Master Admin</span>
+        <button class="btn-secondary" style="font-size: 0.8rem; padding: 6px 14px;" onclick="window.clinicApp.switchView('reports')">
+          📊 View Reports & Analytics
+        </button>
       `;
     } else if (user.role === 'Doctor') {
       banner.innerHTML = `
@@ -1360,9 +1623,14 @@
           <h3>🩺 Doctor Clinical Workspace: ${user.name}</h3>
           <p>Consultation schedule, assigned patients, prescription notes, and examination case files.</p>
         </div>
-        <button class="btn-primary" style="font-size: 0.8rem; padding: 6px 14px;" onclick="window.clinicApp.openModal('modalAddRecord')">
-          New Clinical Record
-        </button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn-primary" style="font-size: 0.8rem; padding: 6px 14px;" onclick="window.clinicApp.switchView('consultation')">
+            🩺 Open Consultation Room
+          </button>
+          <button class="btn-secondary" style="font-size: 0.8rem; padding: 6px 14px;" onclick="window.clinicApp.openModal('modalAddRecord')">
+            New Clinical Record
+          </button>
+        </div>
       `;
     } else {
       banner.innerHTML = `
@@ -1398,6 +1666,10 @@
 
   async function handleUpdatePatient(e) {
     e.preventDefault();
+    if (state.currentUser?.role !== 'Patient') {
+      showToast('Only patients can update their own personal details.', 'error');
+      return;
+    }
     const id = document.getElementById('editPatId').value;
     const name = document.getElementById('editPatName').value;
     const phone = document.getElementById('editPatPhone').value;
@@ -1531,6 +1803,10 @@
   // MEDICAL RECORD ACTIONS: EDIT & DELETE
   // -------------------------------------------------------------
   function openEditRecord(id) {
+    if (state.currentUser?.role !== 'Doctor') {
+      showToast('Only doctors can modify clinical medical records.', 'error');
+      return;
+    }
     const r = state.records.find(item => item._id === id);
     if (!r) return;
     document.getElementById('editRecId').value = r._id;
@@ -1548,6 +1824,10 @@
 
   async function handleUpdateRecord(e) {
     e.preventDefault();
+    if (state.currentUser?.role !== 'Doctor') {
+      showToast('Only doctors can update clinical medical records.', 'error');
+      return;
+    }
     const id = document.getElementById('editRecId').value;
     const diagnosis = document.getElementById('editRecDiagnosis').value;
     const symptoms = document.getElementById('editRecSymptoms').value.split(',').map(s => s.trim()).filter(Boolean);
@@ -1588,6 +1868,10 @@
   }
 
   async function deleteRecord(id) {
+    if (state.currentUser?.role !== 'Doctor') {
+      showToast('Only doctors can delete clinical medical records.', 'error');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this clinical medical record?')) return;
     try {
       await apiFetch(`/medical-records/${id}`, { method: 'DELETE' });
@@ -1595,6 +1879,213 @@
       refreshAllData();
     } catch (err) {
       showToast(err.message || 'Failed to delete record', 'error');
+    }
+  }
+
+  // -------------------------------------------------------------
+  // ADMIN REPORTS & MONITORING
+  // -------------------------------------------------------------
+  async function loadReportsData() {
+    if (state.currentUser?.role !== 'Admin') return;
+    try {
+      const pCount = state.patients.length;
+      const dCount = state.doctors.length;
+      const aCount = state.appointments.length;
+      const rCount = state.records.length;
+
+      const repP = document.getElementById('repTotalPatients');
+      const repD = document.getElementById('repTotalDoctors');
+      const repA = document.getElementById('repTotalAppointments');
+      const repR = document.getElementById('repTotalRecords');
+      if (repP) repP.innerText = pCount;
+      if (repD) repD.innerText = dCount;
+      if (repA) repA.innerText = aCount;
+      if (repR) repR.innerText = rCount;
+
+      let scheduled = 0, confirmed = 0, completed = 0, cancelled = 0;
+      const docWorkload = {};
+      state.appointments.forEach(a => {
+        const s = (a.status || 'Scheduled').toLowerCase();
+        if (s === 'scheduled') scheduled++;
+        else if (s === 'confirmed') confirmed++;
+        else if (s === 'completed') completed++;
+        else if (s === 'cancelled') cancelled++;
+
+        const docName = a.doctor?.name || 'Unassigned';
+        docWorkload[docName] = (docWorkload[docName] || 0) + 1;
+      });
+
+      const elSched = document.getElementById('repApptScheduled');
+      const elConf = document.getElementById('repApptConfirmed');
+      const elComp = document.getElementById('repApptCompleted');
+      const elCanc = document.getElementById('repApptCancelled');
+      if (elSched) elSched.innerText = scheduled;
+      if (elConf) elConf.innerText = confirmed;
+      if (elComp) elComp.innerText = completed;
+      if (elCanc) elCanc.innerText = cancelled;
+
+      const workloadEl = document.getElementById('reportsDoctorWorkload');
+      if (workloadEl) {
+        const entries = Object.entries(docWorkload);
+        if (!entries.length) {
+          workloadEl.innerHTML = '<p style="color: var(--text-dim);">No doctor consultation data available.</p>';
+        } else {
+          workloadEl.innerHTML = entries.map(([name, count]) => `
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);">
+              <span>${name}</span>
+              <strong style="color: #38bdf8;">${count} appts</strong>
+            </div>
+          `).join('');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load reports:', err);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // DOCTOR CLINICAL CONSULTATION WORKSPACE
+  // -------------------------------------------------------------
+  function populateConsultationDropdown() {
+    const select = document.getElementById('consultApptSelect');
+    if (!select) return;
+
+    const user = state.currentUser;
+    // Appointments for this doctor
+    const myAppts = state.appointments.filter(a => {
+      if (user?.role === 'Doctor') {
+        return a.doctor?._id === user.doctorId || a.doctor === user.doctorId || a.doctor?.email === user.email;
+      }
+      return true;
+    });
+
+    const options = myAppts.map(a => {
+      const pName = a.patient?.name || 'Patient';
+      return `<option value="${a._id}" data-patient-id="${a.patient?._id || a.patient}" data-doctor-id="${a.doctor?._id || a.doctor}" data-reason="${escapeHtml(a.reason || '')}">
+        📅 ${a.appointmentDate} (${a.appointmentTime}) - ${pName} [Status: ${a.status}]
+      </option>`;
+    }).join('');
+
+    select.innerHTML = '<option value="">-- Choose Patient Appointment --</option>' + options;
+
+    const visitDateInput = document.getElementById('consultVisitDate');
+    if (visitDateInput && !visitDateInput.value) {
+      visitDateInput.value = getLocalDateString();
+    }
+  }
+
+  function onConsultationAppointmentSelect(apptId) {
+    if (!apptId) return;
+    const appt = state.appointments.find(a => a._id === apptId);
+    if (!appt) return;
+
+    const diagInput = document.getElementById('consultDiagnosis');
+    const sympInput = document.getElementById('consultSymptoms');
+    if (diagInput && !diagInput.value) {
+      diagInput.value = `Consultation for: ${appt.reason || 'General Medical'}`;
+    }
+    if (sympInput && !sympInput.value) {
+      sympInput.value = appt.reason || '';
+    }
+  }
+
+  function startConsultationForAppointment(apptId) {
+    switchView('consultation');
+    populateConsultationDropdown();
+    const select = document.getElementById('consultApptSelect');
+    if (select) {
+      select.value = apptId;
+      onConsultationAppointmentSelect(apptId);
+    }
+  }
+
+  function startConsultationForPatient(patientId) {
+    switchView('consultation');
+    populateConsultationDropdown();
+    const select = document.getElementById('consultApptSelect');
+    if (select) {
+      const appt = state.appointments.find(a => (a.patient?._id === patientId || a.patient === patientId));
+      if (appt) {
+        select.value = appt._id;
+        onConsultationAppointmentSelect(appt._id);
+      }
+    }
+  }
+
+  async function handleDoctorConsultationSubmit(e) {
+    if (e) e.preventDefault();
+    if (state.currentUser?.role !== 'Doctor') {
+      showToast('Only doctors can complete clinical consultations.', 'error');
+      return;
+    }
+
+    const apptSelect = document.getElementById('consultApptSelect');
+    const apptId = apptSelect?.value;
+    const selectedOption = apptSelect?.options[apptSelect.selectedIndex];
+    const patientId = selectedOption?.getAttribute('data-patient-id');
+    let doctorId = selectedOption?.getAttribute('data-doctor-id');
+
+    if (!doctorId && state.currentUser.doctorId) {
+      doctorId = state.currentUser.doctorId;
+    }
+
+    const visitDate = document.getElementById('consultVisitDate')?.value || getLocalDateString();
+    const diagnosis = document.getElementById('consultDiagnosis')?.value?.trim();
+    const symptomsStr = document.getElementById('consultSymptoms')?.value?.trim();
+    const bp = document.getElementById('consultBP')?.value?.trim();
+    const hr = document.getElementById('consultHR')?.value?.trim();
+    const temp = document.getElementById('consultTemp')?.value?.trim();
+    const spo2 = document.getElementById('consultSpO2')?.value?.trim();
+    const prescStr = document.getElementById('consultPrescriptions')?.value?.trim();
+    const notes = document.getElementById('consultNotes')?.value?.trim();
+    const followUp = document.getElementById('consultFollowUp')?.value;
+
+    if (!patientId || !doctorId || !diagnosis) {
+      showToast('Please select a scheduled appointment and enter the diagnosis.', 'error');
+      return;
+    }
+
+    const symptoms = symptomsStr ? symptomsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const prescriptions = prescStr ? prescStr.split('\n').filter(Boolean).map(line => {
+      const parts = line.split('|').map(p => p.trim());
+      return {
+        medicineName: parts[0] || 'Medication',
+        dosage: parts[1] || 'Standard',
+        frequency: parts[2] || 'Daily',
+        duration: parts[3] || '5 days',
+        instructions: parts[4] || ''
+      };
+    }) : [];
+
+    try {
+      await apiFetch('/medical-records', {
+        method: 'POST',
+        body: JSON.stringify({
+          patient: patientId,
+          doctor: doctorId,
+          visitDate,
+          diagnosis,
+          symptoms,
+          vitals: { bloodPressure: bp, heartRate: hr, temperature: temp, oxygenLevel: spo2 },
+          prescriptions,
+          doctorNotes: notes,
+          followUpDate: followUp || null
+        })
+      });
+
+      if (apptId) {
+        await apiFetch(`/appointments/${apptId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'Completed' })
+        });
+      }
+
+      showToast('Clinical consultation completed & medical record saved!', 'success');
+      document.getElementById('consultationWorkspaceForm')?.reset();
+      refreshAllData();
+      switchView('records');
+    } catch (err) {
+      showToast(err.message || 'Failed to submit consultation record', 'error');
     }
   }
 
@@ -1691,7 +2182,15 @@
     saveCustomApiUrl,
     switchToRender,
     switchToLocal,
-    testApiConnection
+    testApiConnection,
+    switchAuthTab,
+    handleRegisterPatient,
+    loadReportsData,
+    populateConsultationDropdown,
+    onConsultationAppointmentSelect,
+    startConsultationForAppointment,
+    startConsultationForPatient,
+    handleDoctorConsultationSubmit
   };
 
 })();

@@ -14,12 +14,12 @@ router.use(protect);
 router
   .route('/')
   .get(getAppointments)
-  .post(createAppointment);
+  .post(authorizeRoles('Patient'), createAppointment);
 
 router
   .route('/:id')
   .get(getAppointment)
   .put(updateAppointment)
-  .delete(authorizeRoles('Admin', 'Doctor'), deleteAppointment);
+  .delete(authorizeRoles('Doctor'), deleteAppointment);
 
 module.exports = router;

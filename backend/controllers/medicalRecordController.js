@@ -74,15 +74,20 @@ exports.getMedicalRecord = async (req, res, next) => {
 
 // @desc    Create new medical record
 // @route   POST /api/medical-records
-// @access  Private (Admin, Doctor)
+// @access  Private (Doctor only)
 exports.createMedicalRecord = async (req, res, next) => {
   try {
+    if (req.user.role !== 'Doctor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin and Patients cannot create medical records. Clinical documentation is reserved for doctors.'
+      });
+    }
+
     let { patient, doctor, appointment, visitDate, symptoms, diagnosis, vitals, prescriptions, labTests, doctorNotes, followUpDate } = req.body;
 
-    // If doctor creating, auto-assign their doctorId if not given
-    if (req.user.role === 'Doctor' && !doctor) {
-      doctor = req.user.doctorId;
-    }
+    // Auto-assign doctor from authenticated doctor account
+    doctor = req.user.doctorId || doctor;
 
     if (!patient || !doctor || !diagnosis) {
       return res.status(400).json({
@@ -120,9 +125,23 @@ exports.createMedicalRecord = async (req, res, next) => {
 
 // @desc    Update medical record
 // @route   PUT /api/medical-records/:id
-// @access  Private (Admin, Doctor)
+// @access  Private (Doctor only)
 exports.updateMedicalRecord = async (req, res, next) => {
   try {
+    if (req.user.role === 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin has read-only access and cannot edit medical records.'
+      });
+    }
+
+    if (req.user.role !== 'Doctor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only doctors can edit medical records.'
+      });
+    }
+
     let record = await MedicalRecord.findById(req.params.id);
 
     if (!record) {
@@ -132,7 +151,7 @@ exports.updateMedicalRecord = async (req, res, next) => {
       });
     }
 
-    if (req.user.role === 'Doctor' && record.doctor.toString() !== req.user.doctorId?.toString()) {
+    if (record.doctor.toString() !== req.user.doctorId?.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: You can only edit records you authored'
@@ -157,9 +176,23 @@ exports.updateMedicalRecord = async (req, res, next) => {
 
 // @desc    Delete medical record
 // @route   DELETE /api/medical-records/:id
-// @access  Private (Admin only)
+// @access  Private (Authoring Doctor only)
 exports.deleteMedicalRecord = async (req, res, next) => {
   try {
+    if (req.user.role === 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin has read-only monitoring access and cannot delete medical records.'
+      });
+    }
+
+    if (req.user.role !== 'Doctor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only attending doctors can delete their own medical records.'
+      });
+    }
+
     const record = await MedicalRecord.findById(req.params.id);
 
     if (!record) {
@@ -169,7 +202,7 @@ exports.deleteMedicalRecord = async (req, res, next) => {
       });
     }
 
-    if (req.user.role === 'Doctor' && record.doctor.toString() !== req.user.doctorId?.toString()) {
+    if (record.doctor.toString() !== req.user.doctorId?.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: You can only delete records you authored'
