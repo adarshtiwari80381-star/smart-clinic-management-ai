@@ -408,8 +408,8 @@
       }
     } else {
       // Unauthenticated / Guest
-      if (viewId !== 'dashboard' && viewId !== 'doctors' && viewId !== 'ai-assistant') {
-        showToast('Please sign in to access this clinic section.', 'info');
+      if (viewId !== 'dashboard' && viewId !== 'doctors') {
+        showToast('Please sign in as a Patient to access the AI Health Assistant.', 'info');
         openModal('modalAuth');
         return;
       }
@@ -424,7 +424,16 @@
 
     // Update Sections
     document.querySelectorAll('.view-section').forEach(sec => {
-      sec.classList.toggle('active', sec.id === `view-${viewId}`);
+      if (sec.id === 'view-ai-assistant' && (!user || user.role !== 'Patient')) {
+        sec.style.display = 'none';
+        sec.classList.remove('active');
+        return;
+      }
+      const isActive = sec.id === `view-${viewId}`;
+      sec.classList.toggle('active', isActive);
+      if (sec.id === 'view-ai-assistant') {
+        sec.style.display = isActive ? 'block' : 'none';
+      }
     });
 
     // Dynamic Header Title & Subtitle based on active role
@@ -552,7 +561,6 @@
       items = [
         { view: 'dashboard', icon: '📊', label: 'Dashboard' },
         { view: 'doctors', icon: '🩺', label: 'Specialist Directory' },
-        { view: 'ai-assistant', icon: '🤖', label: 'AI Health Assistant', badge: 'AI LIVE' },
         { view: 'login', icon: '🔑', label: 'Sign In', action: () => openModal('modalAuth') }
       ];
     }
@@ -718,7 +726,9 @@
     const btnAddPat = document.getElementById('btnOpenAddPatient');
     const btnAddRec = document.getElementById('btnOpenAddRecord');
     const btnDashBookAppt = document.getElementById('btnDashBookAppt');
+    const btnDashAiAssistant = document.getElementById('btnDashAiAssistant');
     const btnOpenScheduleAppt = document.getElementById('btnOpenScheduleAppt');
+    const secAiAssistant = document.getElementById('view-ai-assistant');
 
     const setUserName = document.getElementById('setUserName');
     const setUserEmail = document.getElementById('setUserEmail');
@@ -751,7 +761,12 @@
       if (btnAddPat) btnAddPat.style.display = 'none'; // Patient creation is only via self-registration
       if (btnAddRec) btnAddRec.style.display = user.role === 'Doctor' ? 'inline-flex' : 'none';
       if (btnDashBookAppt) btnDashBookAppt.style.display = user.role === 'Patient' ? 'inline-flex' : 'none';
+      if (btnDashAiAssistant) btnDashAiAssistant.style.display = user.role === 'Patient' ? 'inline-flex' : 'none';
       if (btnOpenScheduleAppt) btnOpenScheduleAppt.style.display = user.role === 'Patient' ? 'inline-flex' : 'none';
+      if (secAiAssistant && user.role !== 'Patient') {
+        secAiAssistant.style.display = 'none';
+        secAiAssistant.classList.remove('active');
+      }
 
       // Allow closing auth modal when authenticated
       if (modalCloseBtn) modalCloseBtn.style.display = 'block';
@@ -777,7 +792,12 @@
       if (btnAddPat) btnAddPat.style.display = 'none';
       if (btnAddRec) btnAddRec.style.display = 'none';
       if (btnDashBookAppt) btnDashBookAppt.style.display = 'none';
+      if (btnDashAiAssistant) btnDashAiAssistant.style.display = 'none';
       if (btnOpenScheduleAppt) btnOpenScheduleAppt.style.display = 'none';
+      if (secAiAssistant) {
+        secAiAssistant.style.display = 'none';
+        secAiAssistant.classList.remove('active');
+      }
 
       if (modalCloseBtn) modalCloseBtn.style.display = 'none';
     }

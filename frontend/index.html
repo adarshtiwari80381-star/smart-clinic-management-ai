@@ -80,7 +80,7 @@
             <span>Consultation</span>
           </a>
         </li>
-        <li class="nav-item" data-view="ai-assistant">
+        <li class="nav-item" data-view="ai-assistant" id="navItemAiAssistant" style="display: none;">
           <a href="#ai-assistant">
             <span class="nav-icon">🤖</span>
             <span>AI Health Assistant</span>
@@ -187,11 +187,11 @@
         <!-- Dashboard Quick Actions & Upcoming Appointments -->
         <div class="action-header">
           <h3 style="font-size: 1.15rem; color: #fff;">Upcoming Consultations</h3>
-          <div class="action-btns">
-            <button class="btn-primary" id="btnDashBookAppt" onclick="window.clinicApp.openModal('modalBookAppointment')">
+          <div class="action-btns" id="dashboardQuickActions">
+            <button class="btn-primary" id="btnDashBookAppt" style="display: none;" onclick="window.clinicApp.openModal('modalBookAppointment')">
               <span>➕</span> Book Appointment
             </button>
-            <button class="btn-secondary" onclick="window.clinicApp.switchView('ai-assistant')">
+            <button class="btn-secondary" id="btnDashAiAssistant" style="display: none;" onclick="window.clinicApp.switchView('ai-assistant')">
               <span>🤖</span> Consult AI Assistant
             </button>
           </div>
