@@ -1,0 +1,9 @@
+{
+  "name": "smart-clinic-management-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend client for Smart Clinic Management System AI",
+  "scripts": {
+    "build": "node build.js"
+  }
+}

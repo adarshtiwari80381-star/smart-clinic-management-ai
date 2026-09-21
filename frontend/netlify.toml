@@ -1,7 +1,8 @@
-# Netlify Configuration for Smart Clinic Management System AI
+# Netlify Configuration for Frontend Directory
+# Used when Netlify Base Directory is set to "frontend" or when deploying the frontend folder
 [build]
-  command = "npm run build"
-  publish = "frontend"
+  command = "node build.js"
+  publish = "."
 
 # Forward API requests directly to the production Render backend
 [[redirects]]
@@ -10,7 +11,7 @@
   status = 200
   force = true
 
-# Single Page Application (SPA) routing: serve index.html for client-side routing
+# Single Page Application (SPA) routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
