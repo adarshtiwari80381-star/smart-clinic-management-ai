@@ -343,6 +343,11 @@
           if (patGroup) patGroup.style.display = 'flex';
           if (patSelect) patSelect.required = true;
         }
+
+        const docSelect = document.getElementById('apptDoctorSelect');
+        if (docSelect && docSelect.value) {
+          onDoctorSelected(docSelect.value);
+        }
       }
 
       if (modalId === 'modalAddRecord') {
@@ -1046,41 +1051,100 @@
   }
 
   function renderAppointmentsTable(appointments) {
-    const tbody = document.querySelector('#appointmentsTable tbody');
+    const table = document.querySelector('#appointmentsTable');
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
     if (!tbody) return;
 
+    const isAdmin = state.currentUser?.role === 'Admin';
+    const isDoctor = state.currentUser?.role === 'Doctor';
+
+    // Update table header depending on user role
+    if (thead) {
+      if (isAdmin) {
+        thead.innerHTML = `
+          <tr>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Requested Date</th>
+            <th>Requested Time</th>
+            <th>Confirmed Date</th>
+            <th>Confirmed Time</th>
+            <th>Status</th>
+            <th style="text-align: right;">Audit</th>
+          </tr>
+        `;
+      } else {
+        thead.innerHTML = `
+          <tr>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Confirmed Date</th>
+            <th>Consultation Time</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        `;
+      }
+    }
+
     if (!appointments.length) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 30px;">No scheduled appointments found.</td></tr>`;
+      const colSpan = isAdmin ? 8 : 7;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; color: var(--text-dim); padding: 30px;">No scheduled appointments found.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = appointments.map(a => {
-      const statusClass = (a.status || 'scheduled').toLowerCase();
+      const statusClass = (a.status || 'confirmed').toLowerCase();
       const patientName = a.patient ? a.patient.name : 'Unknown Patient';
       const doctorName = a.doctor ? a.doctor.name : 'Assigned Doctor';
       const spec = a.doctor ? a.doctor.specialization : '';
+
+      const reqDate = a.requestedDate || a.appointmentDate || 'N/A';
+      const reqTime = a.requestedTime || a.appointmentTime || 'N/A';
+      const confDate = a.scheduledDate || a.appointmentDate || 'N/A';
+      const confTime = a.scheduledTime || a.appointmentTime || 'N/A';
+
+      if (isAdmin) {
+        return `
+          <tr>
+            <td><strong>${patientName}</strong><br><span style="font-size: 0.75rem; color: var(--text-dim);">${a.patient?.phone || ''}</span></td>
+            <td><strong>${doctorName}</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">${spec}</span></td>
+            <td>📅 ${reqDate}</td>
+            <td>⏰ ${reqTime}</td>
+            <td>📅 <strong>${confDate}</strong></td>
+            <td>⏰ <strong style="color: #22c55e;">${confTime}</strong></td>
+            <td><span class="status-pill ${statusClass}">● ${a.status}</span></td>
+            <td style="text-align: right;">
+              <span style="font-size: 0.75rem; color: var(--text-dim); padding: 4px 8px;">Audit Only</span>
+            </td>
+          </tr>
+        `;
+      }
 
       return `
         <tr>
           <td><strong>${patientName}</strong><br><span style="font-size: 0.75rem; color: var(--text-dim);">${a.patient?.phone || ''}</span></td>
           <td><strong>${doctorName}</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">${spec}</span></td>
-          <td>📅 ${a.appointmentDate}</td>
-          <td>⏰ <strong>${a.appointmentTime}</strong></td>
+          <td>📅 <strong>${confDate}</strong></td>
+          <td>
+            ⏰ <strong style="color: #22c55e;">${confTime}</strong>
+            ${reqTime && reqTime !== confTime ? `<br><span style="font-size: 0.72rem; color: var(--text-dim);" title="Patient's initial preferred request">Requested: ${reqTime}</span>` : ''}
+          </td>
           <td>${a.reason}</td>
           <td><span class="status-pill ${statusClass}">● ${a.status}</span></td>
           <td style="text-align: right;">
             <div class="action-btns" style="justify-content: flex-end;">
-              ${state.currentUser?.role === 'Doctor' && a.status === 'Scheduled' ? `
+              ${isDoctor && a.status === 'Scheduled' ? `
                 <button class="btn-icon" title="Confirm Appointment" onclick="window.clinicApp.updateAppointmentStatus('${a._id}', 'Confirmed')">✅</button>
               ` : ''}
-              ${state.currentUser?.role === 'Doctor' && (a.status === 'Confirmed' || a.status === 'Scheduled') ? `
+              ${isDoctor && (a.status === 'Confirmed' || a.status === 'Scheduled') ? `
                 <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" title="Start Consultation & Complete" onclick="window.clinicApp.startConsultationForAppointment('${a._id}')">🩺 Consult</button>
               ` : ''}
-              ${(state.currentUser?.role === 'Patient' || state.currentUser?.role === 'Doctor') && a.status !== 'Cancelled' && a.status !== 'Completed' ? `
+              ${(state.currentUser?.role === 'Patient' || isDoctor) && a.status !== 'Cancelled' && a.status !== 'Completed' ? `
                 <button class="btn-icon danger" title="Cancel Appointment" onclick="window.clinicApp.cancelAppointment('${a._id}')">❌</button>
-              ` : ''}
-              ${state.currentUser?.role === 'Admin' ? `
-                <span style="font-size: 0.75rem; color: var(--text-dim); padding: 4px 8px;">Audit Only</span>
               ` : ''}
             </div>
           </td>
@@ -1195,7 +1259,7 @@
             <tr>
               <td><strong>${a.patient?.name || 'Patient'}</strong></td>
               <td>${a.doctor?.name || 'Doctor'}</td>
-              <td>📅 ${a.appointmentDate} at ⏰ ${a.appointmentTime}</td>
+              <td>📅 ${a.scheduledDate || a.appointmentDate} at ⏰ <strong>${a.scheduledTime || a.appointmentTime}</strong></td>
               <td>${a.reason}</td>
               <td><span style="font-size: 0.78rem; color: var(--text-muted);">${a.type || 'Consultation'}</span></td>
               <td><span class="status-pill ${(a.status || 'scheduled').toLowerCase()}">● ${a.status}</span></td>
@@ -1221,7 +1285,7 @@
   async function handleCreateAppointment(e) {
     e.preventDefault();
 
-    if (state.currentUser?.role !== 'Patient') {
+    if (state.currentUser && state.currentUser.role !== 'Patient') {
       showToast('Only patients can book appointments. Administrators and Doctors cannot book appointments.', 'error');
       return;
     }
@@ -1231,7 +1295,7 @@
     if (alertBox) alertBox.classList.remove('show');
 
     const doctor = document.getElementById('apptDoctorSelect').value;
-    let patient = state.currentUser?.patientId || (state.patients[0] && state.patients[0]._id);
+    let patient = state.currentUser?.patientId || document.getElementById('apptPatientSelect')?.value || (state.patients[0] && state.patients[0]._id);
     const appointmentDate = document.getElementById('apptDateInput').value;
     const appointmentTime = document.getElementById('apptTimeSelect').value;
     const reason = document.getElementById('apptReasonInput').value;
@@ -1263,18 +1327,40 @@
         body: JSON.stringify({
           doctor,
           patient,
+          requestedDate: appointmentDate,
+          requestedTime: appointmentTime,
           appointmentDate,
           appointmentTime,
+          autoSchedule: true,
           reason,
           type,
           notes
         })
       });
 
-      showToast('Appointment successfully scheduled!', 'success');
       closeModal('modalBookAppointment');
       document.getElementById('bookAppointmentForm').reset();
       refreshAllData();
+
+      // Show confirmation dialog with doctor consultation hours & confirmed appointment time
+      if (res.scheduleDetails) {
+        const details = res.scheduleDetails;
+        const confirmDocEl = document.getElementById('confirmDoctorName');
+        const confirmHoursEl = document.getElementById('confirmDoctorHours');
+        const confirmSchedEl = document.getElementById('confirmFinalSchedule');
+        const confirmMsgEl = document.getElementById('confirmDisplayMessage');
+        const confirmReqEl = document.getElementById('confirmRequestedTime');
+
+        if (confirmDocEl) confirmDocEl.innerText = details.doctorName || 'Assigned Specialist';
+        if (confirmHoursEl) confirmHoursEl.innerText = details.doctorWorkingHours || '10:00 AM - 02:00 PM';
+        if (confirmSchedEl) confirmSchedEl.innerText = `${details.scheduledDayName || ''}, ${details.scheduledTime || ''}`;
+        if (confirmMsgEl) confirmMsgEl.innerText = details.displayMessage || 'Your consultation has been confirmed within doctor hours.';
+        if (confirmReqEl) confirmReqEl.innerText = `${details.requestedDate} at ${details.requestedTime || ''}`;
+
+        openModal('modalAppointmentConfirmed');
+      } else {
+        showToast('Appointment successfully confirmed!', 'success');
+      }
     } catch (err) {
       // ==========================================
       // CRITICAL REQUIREMENT: CONFLICT HANDLING
@@ -1639,7 +1725,10 @@
   function quickBookDoctor(docId) {
     openModal('modalBookAppointment');
     const select = document.getElementById('apptDoctorSelect');
-    if (select) select.value = docId;
+    if (select) {
+      select.value = docId;
+      onDoctorSelected(docId);
+    }
   }
 
   function quickBookPatient(patientId) {
@@ -1648,8 +1737,38 @@
     if (select) select.value = patientId;
   }
 
+  function formatTime12Hour(timeStr) {
+    if (!timeStr) return '';
+    const parts = String(timeStr).trim().split(':');
+    let h = parseInt(parts[0], 10);
+    const m = parts[1] ? parts[1].substring(0, 2) : '00';
+    const meridian = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${String(h).padStart(2, '0')}:${m} ${meridian}`;
+  }
+
   function onDoctorSelected(docId) {
-    console.log('Doctor selected:', docId);
+    const banner = document.getElementById('doctorWorkingHoursBanner');
+    const textEl = document.getElementById('doctorWorkingHoursText');
+    if (!banner || !textEl) return;
+
+    if (!docId) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    const doc = state.doctors.find(d => d._id === docId);
+    if (!doc) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    const days = doc.availableDays && doc.availableDays.length ? doc.availableDays.join(', ') : 'Monday - Friday';
+    const start = doc.workingHoursStart || '10:00';
+    const end = doc.workingHoursEnd || '14:00';
+    textEl.innerText = `${days}: ${formatTime12Hour(start)} - ${formatTime12Hour(end)}`;
+    banner.style.display = 'block';
   }
 
   // -------------------------------------------------------------

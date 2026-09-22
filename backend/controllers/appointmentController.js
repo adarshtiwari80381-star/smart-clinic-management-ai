@@ -1,13 +1,22 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
+const schedulingService = require('../services/schedulingService');
 
 // Helper: Check if slot is taken
 const isDoctorBooked = async (doctorId, date, time, excludeAppointmentId = null) => {
+  const normTime = schedulingService.minutesToTime(schedulingService.timeToMinutes(time));
+  const time12h = schedulingService.formatTime12Hour(time);
+  const possibleTimes = Array.from(new Set([time, normTime, time12h].filter(Boolean)));
+
   const query = {
     doctor: doctorId,
-    appointmentDate: date,
-    appointmentTime: time,
+    $or: [
+      { scheduledDate: date, scheduledTime: { $in: possibleTimes } },
+      { appointmentDate: date, appointmentTime: { $in: possibleTimes } },
+      { scheduledDate: date, appointmentTime: { $in: possibleTimes } },
+      { appointmentDate: date, scheduledTime: { $in: possibleTimes } }
+    ],
     status: { $ne: 'Cancelled' }
   };
 
@@ -41,13 +50,18 @@ exports.getAppointments = async (req, res, next) => {
     // Optional query filters
     if (req.query.doctor) query.doctor = req.query.doctor;
     if (req.query.patient) query.patient = req.query.patient;
-    if (req.query.date) query.appointmentDate = req.query.date;
+    if (req.query.date) {
+      query.$or = [
+        { scheduledDate: req.query.date },
+        { appointmentDate: req.query.date }
+      ];
+    }
     if (req.query.status) query.status = req.query.status;
 
     const appointments = await Appointment.find(query)
-      .populate('doctor', 'name specialization email phone consultationFee roomNumber')
+      .populate('doctor', 'name specialization email phone consultationFee roomNumber availableDays workingHoursStart workingHoursEnd availableTimeSlots')
       .populate('patient', 'name email phone age gender bloodGroup allergies')
-      .sort({ appointmentDate: 1, appointmentTime: 1 });
+      .sort({ scheduledDate: 1, scheduledTime: 1, appointmentDate: 1, appointmentTime: 1 });
 
     res.status(200).json({
       success: true,
@@ -65,7 +79,7 @@ exports.getAppointments = async (req, res, next) => {
 exports.getAppointment = async (req, res, next) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
-      .populate('doctor', 'name specialization email phone consultationFee roomNumber')
+      .populate('doctor', 'name specialization email phone consultationFee roomNumber availableDays workingHoursStart workingHoursEnd availableTimeSlots')
       .populate('patient', 'name email phone age gender bloodGroup allergies');
 
     if (!appointment) {
@@ -99,7 +113,7 @@ exports.getAppointment = async (req, res, next) => {
   }
 };
 
-// @desc    Create new appointment with Conflict Checking
+// @desc    Create new appointment with Intelligent Schedule Allocation
 // @route   POST /api/appointments
 // @access  Private (Patient only)
 exports.createAppointment = async (req, res, next) => {
@@ -119,7 +133,10 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
-    let { doctor, patient, appointmentDate, appointmentTime, reason, type, notes } = req.body;
+    let { doctor, patient, appointmentDate, appointmentTime, requestedDate, requestedTime, autoSchedule, reason, type, notes } = req.body;
+
+    const reqDateInput = requestedDate || appointmentDate;
+    const reqTimeInput = requestedTime || appointmentTime;
 
     // Strict ownership enforcement: Patient cannot book for another patient
     if (patient && patient.toString() !== req.user.patientId.toString()) {
@@ -132,7 +149,7 @@ exports.createAppointment = async (req, res, next) => {
     // Always enforce logged-in patient's identity
     patient = req.user.patientId;
 
-    if (!doctor || !patient || !appointmentDate || !appointmentTime || !reason) {
+    if (!doctor || !patient || !reqDateInput || !reqTimeInput || !reason) {
       return res.status(400).json({
         success: false,
         message: 'Please provide doctor, patient, date, time slot, and reason for visit.'
@@ -148,7 +165,7 @@ exports.createAppointment = async (req, res, next) => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const localDateStr = `${year}-${month}-${day}`;
-    const reqDateStr = String(appointmentDate).substring(0, 10);
+    const reqDateStr = String(reqDateInput).substring(0, 10);
 
     if (reqDateStr < utcDateStr && reqDateStr < localDateStr) {
       return res.status(400).json({
@@ -175,11 +192,26 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
-    // ==========================================
-    // CRITICAL REQUIREMENT: APPOINTMENT CONFLICT CHECK
-    // ==========================================
-    const conflict = await isDoctorBooked(doctor, appointmentDate, appointmentTime);
-    if (conflict) {
+    // Allocate consultation slot strictly within doctor's working hours
+    const scheduleResult = await schedulingService.allocateAppointmentSlot(
+      doctorExists,
+      reqDateStr,
+      reqTimeInput,
+      isDoctorBooked
+    );
+
+    // Conflict check for legacy direct booking without autoSchedule (double booking prevention)
+    const isTargetSlotBooked = await isDoctorBooked(doctor, scheduleResult.scheduledDate, reqTimeInput);
+    const isReqSlotBooked = await isDoctorBooked(doctor, reqDateStr, reqTimeInput);
+
+    if ((isTargetSlotBooked || isReqSlotBooked) && autoSchedule !== true && !requestedTime) {
+      return res.status(409).json({
+        success: false,
+        message: 'Doctor is not available at this time.'
+      });
+    }
+
+    if ((isTargetSlotBooked || isReqSlotBooked) && autoSchedule === false) {
       return res.status(409).json({
         success: false,
         message: 'Doctor is not available at this time.'
@@ -189,21 +221,35 @@ exports.createAppointment = async (req, res, next) => {
     const newAppointment = await Appointment.create({
       doctor,
       patient,
-      appointmentDate,
-      appointmentTime,
+      requestedDate: scheduleResult.requestedDate,
+      requestedTime: scheduleResult.requestedTime,
+      scheduledDate: scheduleResult.scheduledDate,
+      scheduledTime: scheduleResult.scheduledTime,
+      appointmentDate: scheduleResult.scheduledDate,
+      appointmentTime: scheduleResult.scheduledTime,
       reason,
       type: type || 'Consultation',
       notes: notes || '',
-      status: 'Scheduled'
+      status: 'Confirmed'
     });
 
     const populated = await Appointment.findById(newAppointment._id)
-      .populate('doctor', 'name specialization consultationFee roomNumber')
+      .populate('doctor', 'name specialization consultationFee roomNumber availableDays workingHoursStart workingHoursEnd')
       .populate('patient', 'name email phone age gender bloodGroup');
 
     res.status(201).json({
       success: true,
-      message: 'Appointment scheduled successfully.',
+      message: 'Appointment Request Confirmed',
+      scheduleDetails: {
+        doctorName: doctorExists.name,
+        doctorWorkingHours: scheduleResult.doctorWorkingHours,
+        requestedDate: scheduleResult.requestedDate,
+        requestedTime: scheduleResult.requestedTime,
+        scheduledDate: scheduleResult.scheduledDate,
+        scheduledTime: scheduleResult.scheduledTime12h,
+        scheduledDayName: scheduleResult.scheduledDayName,
+        displayMessage: scheduleResult.displayMessage
+      },
       data: populated
     });
   } catch (err) {
@@ -298,11 +344,16 @@ exports.updateAppointment = async (req, res, next) => {
       }
     }
 
+    if (req.body.appointmentDate) req.body.scheduledDate = req.body.appointmentDate;
+    if (req.body.scheduledDate) req.body.appointmentDate = req.body.scheduledDate;
+    if (req.body.appointmentTime) req.body.scheduledTime = req.body.appointmentTime;
+    if (req.body.scheduledTime) req.body.appointmentTime = req.body.scheduledTime;
+
     appointment = await Appointment.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     })
-      .populate('doctor', 'name specialization consultationFee roomNumber')
+      .populate('doctor', 'name specialization consultationFee roomNumber availableDays workingHoursStart workingHoursEnd')
       .populate('patient', 'name email phone age gender bloodGroup');
 
     res.status(200).json({

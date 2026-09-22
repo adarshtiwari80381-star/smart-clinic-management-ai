@@ -21,7 +21,7 @@ async function runDateValidationTests() {
   const day = String(now.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
 
-  const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const pastDate = new Date(now.getTime() - 48 * 60 * 60 * 1000);
   const pastYear = pastDate.getFullYear();
   const pastMonth = String(pastDate.getMonth() + 1).padStart(2, '0');
   const pastDay = String(pastDate.getDate()).padStart(2, '0');
@@ -61,7 +61,7 @@ async function runDateValidationTests() {
   };
 
   const mockReqPast = {
-    user: { role: 'Admin', id: '60d0fe4f5311236168a109a1' },
+    user: { role: 'Patient', patientId: '60d0fe4f5311236168a109c1', id: '60d0fe4f5311236168a109a1' },
     body: {
       doctor: '60d0fe4f5311236168a109b1',
       patient: '60d0fe4f5311236168a109c1',

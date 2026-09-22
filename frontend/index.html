@@ -815,7 +815,7 @@
   <div class="modal-backdrop" id="modalBookAppointment">
     <div class="modal-window">
       <div class="modal-header">
-        <h3>Book Medical Appointment</h3>
+        <h3>Request Medical Consultation</h3>
         <button class="modal-close" onclick="window.clinicApp.closeModal('modalBookAppointment')">&times;</button>
       </div>
       <div class="modal-body">
@@ -823,6 +823,20 @@
         <div class="conflict-alert" id="appointmentConflictAlert">
           <span>⚠️</span>
           <span id="appointmentConflictMessage">Doctor is not available at this time.</span>
+        </div>
+
+        <!-- Doctor Working Hours Banner -->
+        <div id="doctorWorkingHoursBanner" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.85rem; color: #38bdf8;">
+          🩺 <strong>Doctor Consultation Hours:</strong> <span id="doctorWorkingHoursText">10:00 AM - 02:00 PM</span>
+        </div>
+
+        <!-- Flexible Scheduling Information -->
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 0.8rem; color: var(--text-dim); display: flex; align-items: flex-start; gap: 8px;">
+          <span style="font-size: 1rem; line-height: 1;">💡</span>
+          <div>
+            <strong style="color: var(--text-primary);">24/7 Appointment Requests:</strong>
+            You can request an appointment anytime. If your preferred time is outside the doctor's consultation hours, the system will automatically allocate the nearest available consultation slot within doctor working hours.
+          </div>
         </div>
 
         <form id="bookAppointmentForm" onsubmit="window.clinicApp.handleCreateAppointment(event)">
@@ -835,32 +849,44 @@
             </div>
 
             <div class="form-group full-width">
-              <label>Select Attending Doctor *</label>
+              <label>Doctor *</label>
               <select id="apptDoctorSelect" class="form-control" required onchange="window.clinicApp.onDoctorSelected(this.value)">
                 <option value="">-- Choose Doctor --</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label>Appointment Date *</label>
+              <label>Preferred Date *</label>
               <input type="date" id="apptDateInput" class="form-control" required onchange="window.clinicApp.validateAppointmentDate(this)">
               <small style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 3px;">Strict entry: past dates are disabled</small>
             </div>
 
             <div class="form-group">
-              <label>Time Slot *</label>
+              <label>Preferred Time *</label>
               <select id="apptTimeSelect" class="form-control" required>
+                <!-- Morning Slots -->
+                <option value="08:00">08:00 AM (Early Request)</option>
+                <option value="08:30">08:30 AM</option>
                 <option value="09:00">09:00 AM</option>
                 <option value="09:30">09:30 AM</option>
                 <option value="10:00" selected>10:00 AM</option>
                 <option value="10:30">10:30 AM</option>
                 <option value="11:00">11:00 AM</option>
                 <option value="11:30">11:30 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="12:30">12:30 PM</option>
+                <option value="13:00">01:00 PM</option>
+                <option value="13:30">01:30 PM</option>
                 <option value="14:00">02:00 PM</option>
                 <option value="14:30">02:30 PM</option>
                 <option value="15:00">03:00 PM</option>
                 <option value="15:30">03:30 PM</option>
                 <option value="16:00">04:00 PM</option>
+                <option value="16:30">04:30 PM</option>
+                <option value="17:00">05:00 PM (After-Hours Request)</option>
+                <option value="18:00">06:00 PM (Evening Request)</option>
+                <option value="19:00">07:00 PM (Evening Request)</option>
+                <option value="20:00">08:00 PM (Night Request)</option>
               </select>
             </div>
 
@@ -887,9 +913,62 @@
 
           <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0;">
             <button type="button" class="btn-secondary" onclick="window.clinicApp.closeModal('modalBookAppointment')">Cancel</button>
-            <button type="submit" class="btn-primary">Confirm Appointment</button>
+            <button type="submit" class="btn-primary" id="btnSubmitAppointment">Submit Appointment Request</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2B. APPOINTMENT CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="modalAppointmentConfirmed">
+    <div class="modal-window" style="max-width: 520px; text-align: center;">
+      <div class="modal-header" style="border-bottom: none; justify-content: center; position: relative;">
+        <div style="font-size: 2.2rem; margin-top: 4px;">🎉</div>
+        <button class="modal-close" style="position: absolute; right: 16px; top: 16px;" onclick="window.clinicApp.closeModal('modalAppointmentConfirmed')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding-top: 0;">
+        <h2 style="font-size: 1.35rem; color: var(--text-primary); margin-bottom: 4px;">Appointment Request Confirmed</h2>
+        <p style="font-size: 0.88rem; color: var(--text-dim); margin-bottom: 16px;">Appointment request received.</p>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 18px; text-align: left;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Attending Specialist:</span>
+            <strong id="confirmDoctorName" style="color: var(--text-primary);">Dr. James Wilson</strong>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <span style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 700; display: block; margin-bottom: 2px;">
+              Doctor Consultation Hours:
+            </span>
+            <div id="confirmDoctorHours" style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary);">
+              10:00 AM - 02:00 PM
+            </div>
+          </div>
+
+          <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+            <span style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.5px; color: #4ade80; font-weight: 700; display: block; margin-bottom: 2px;">
+              Confirmed Appointment:
+            </span>
+            <div id="confirmFinalSchedule" style="font-size: 1.15rem; font-weight: 700; color: #22c55e;">
+              Monday, 01:30 PM
+            </div>
+            <div id="confirmDisplayMessage" style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">
+              Your consultation has been scheduled within doctor's working hours.
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); padding-top: 4px;">
+            <span>Your Preferred Request:</span>
+            <span id="confirmRequestedTime" style="font-weight: 500; color: var(--text-primary);">Monday at 06:00 PM</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-primary" style="flex: 1;" onclick="window.clinicApp.closeModal('modalAppointmentConfirmed'); window.clinicApp.switchView('appointments');">
+            View in Appointments
+          </button>
+        </div>
       </div>
     </div>
   </div>
