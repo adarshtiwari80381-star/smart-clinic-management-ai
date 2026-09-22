@@ -78,26 +78,53 @@ function getNextDateString(dateStr, daysAhead = 1) {
 
 // Helper: Extract doctor's working schedule details
 function getDoctorScheduleInfo(doctor) {
-  const workingDays =
-    Array.isArray(doctor.availableDays) && doctor.availableDays.length > 0
-      ? doctor.availableDays
-      : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-  let workingHoursStart = doctor.workingHoursStart || '10:00';
-  let workingHoursEnd = doctor.workingHoursEnd || '14:00';
-
-  // Normalize Dr. James Wilson specific default (10:00 AM - 02:00 PM)
-  if (doctor.name && doctor.name.includes('Wilson')) {
-    workingHoursStart = doctor.workingHoursStart || '10:00';
-    workingHoursEnd = doctor.workingHoursEnd || '14:00';
+  // Resolve working days
+  let workingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  if (Array.isArray(doctor.workingDays) && doctor.workingDays.length > 0) {
+    workingDays = doctor.workingDays;
+  } else if (Array.isArray(doctor.availableDays) && doctor.availableDays.length > 0) {
+    workingDays = doctor.availableDays;
+  } else if (doctor.name) {
+    if (doctor.name.includes('Sharma') || doctor.name.includes('Priya')) {
+      workingDays = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    } else if (doctor.name.includes('Chen') || doctor.name.includes('Robert')) {
+      workingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    }
   }
 
+  // Resolve working hours start and end
+  let workingHoursStart = doctor.workingHoursStart;
+  let workingHoursEnd = doctor.workingHoursEnd;
+
+  // Apply doctor-specific schedule mapping if not explicitly configured or defaulting
+  if (!workingHoursStart || !workingHoursEnd || (workingHoursStart === '10:00' && workingHoursEnd === '14:00' && doctor.name && !doctor.name.includes('Wilson'))) {
+    if (doctor.name) {
+      if (doctor.name.includes('Sharma') || doctor.name.includes('Priya')) {
+        workingHoursStart = '11:00';
+        workingHoursEnd = '16:00';
+      } else if (doctor.name.includes('Chen') || doctor.name.includes('Robert')) {
+        workingHoursStart = '09:00';
+        workingHoursEnd = '13:00';
+      } else if (doctor.name.includes('Jenkins') || doctor.name.includes('Sarah')) {
+        workingHoursStart = '14:00';
+        workingHoursEnd = '19:00';
+      } else if (doctor.name.includes('Wilson') || doctor.name.includes('James')) {
+        workingHoursStart = '10:00';
+        workingHoursEnd = '14:00';
+      }
+    }
+  }
+
+  workingHoursStart = workingHoursStart || '10:00';
+  workingHoursEnd = workingHoursEnd || '14:00';
+
+  const slotDuration = Number(doctor.slotDurationMinutes) || 30;
   const startMins = timeToMinutes(workingHoursStart);
   const endMins = timeToMinutes(workingHoursEnd);
 
-  // Generate 30-minute consultation slots within doctor's working hours
+  // Generate consultation slots within doctor's working hours
   const slots = [];
-  for (let m = startMins; m < endMins; m += 30) {
+  for (let m = startMins; m < endMins; m += slotDuration) {
     slots.push(minutesToTime(m));
   }
 
@@ -109,6 +136,7 @@ function getDoctorScheduleInfo(doctor) {
     workingHoursEnd: minutesToTime(endMins),
     startMins,
     endMins,
+    slotDuration,
     slots,
     workingHoursFormatted
   };

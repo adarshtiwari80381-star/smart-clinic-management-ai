@@ -59,7 +59,7 @@ exports.getAppointments = async (req, res, next) => {
     if (req.query.status) query.status = req.query.status;
 
     const appointments = await Appointment.find(query)
-      .populate('doctor', 'name specialization email phone consultationFee roomNumber availableDays workingHoursStart workingHoursEnd availableTimeSlots')
+      .populate('doctor', 'name specialization email phone consultationFee roomNumber availableDays workingDays workingHoursStart workingHoursEnd slotDurationMinutes availableTimeSlots')
       .populate('patient', 'name email phone age gender bloodGroup allergies')
       .sort({ scheduledDate: 1, scheduledTime: 1, appointmentDate: 1, appointmentTime: 1 });
 
@@ -79,7 +79,7 @@ exports.getAppointments = async (req, res, next) => {
 exports.getAppointment = async (req, res, next) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
-      .populate('doctor', 'name specialization email phone consultationFee roomNumber availableDays workingHoursStart workingHoursEnd availableTimeSlots')
+      .populate('doctor', 'name specialization email phone consultationFee roomNumber availableDays workingDays workingHoursStart workingHoursEnd slotDurationMinutes availableTimeSlots')
       .populate('patient', 'name email phone age gender bloodGroup allergies');
 
     if (!appointment) {
@@ -234,7 +234,7 @@ exports.createAppointment = async (req, res, next) => {
     });
 
     const populated = await Appointment.findById(newAppointment._id)
-      .populate('doctor', 'name specialization consultationFee roomNumber availableDays workingHoursStart workingHoursEnd')
+      .populate('doctor', 'name specialization consultationFee roomNumber availableDays workingDays workingHoursStart workingHoursEnd slotDurationMinutes')
       .populate('patient', 'name email phone age gender bloodGroup');
 
     res.status(201).json({
@@ -353,7 +353,7 @@ exports.updateAppointment = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-      .populate('doctor', 'name specialization consultationFee roomNumber availableDays workingHoursStart workingHoursEnd')
+      .populate('doctor', 'name specialization consultationFee roomNumber availableDays workingDays workingHoursStart workingHoursEnd slotDurationMinutes')
       .populate('patient', 'name email phone age gender bloodGroup');
 
     res.status(200).json({

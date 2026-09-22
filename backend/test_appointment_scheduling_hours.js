@@ -48,22 +48,100 @@ async function runSchedulingTests() {
   // ==========================================================================
   console.log('--- Step 1: Unit Testing Doctor Working Hours & Allocation Algorithm ---');
 
-  // Simulated Dr. James Wilson
+  // Simulated 4 Demo Doctors
   const mockDrWilson = {
     _id: '60d0fe4f5311236168a109d4',
     name: 'Dr. James Wilson',
     specialization: 'General Medicine',
-    availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     workingHoursStart: '10:00',
     workingHoursEnd: '14:00',
-    availableTimeSlots: ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30']
+    slotDurationMinutes: 30
   };
 
-  const scheduleInfo = schedulingService.getDoctorScheduleInfo(mockDrWilson);
+  const mockDrSharma = {
+    _id: '60d0fe4f5311236168a109d3',
+    name: 'Dr. Priya Sharma',
+    specialization: 'Dermatology',
+    workingDays: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    workingHoursStart: '11:00',
+    workingHoursEnd: '16:00',
+    slotDurationMinutes: 30
+  };
+
+  const mockDrChen = {
+    _id: '60d0fe4f5311236168a109d2',
+    name: 'Dr. Robert Chen',
+    specialization: 'Pediatrics',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    workingHoursStart: '09:00',
+    workingHoursEnd: '13:00',
+    slotDurationMinutes: 30
+  };
+
+  const mockDrJenkins = {
+    _id: '60d0fe4f5311236168a109d1',
+    name: 'Dr. Sarah Jenkins',
+    specialization: 'Cardiology',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    workingHoursStart: '14:00',
+    workingHoursEnd: '19:00',
+    slotDurationMinutes: 30
+  };
+
+  const schedWilson = schedulingService.getDoctorScheduleInfo(mockDrWilson);
   recordTest(
-    '1. Doctor Working Hours definition',
-    scheduleInfo.workingHoursFormatted === '10:00 AM - 02:00 PM' && scheduleInfo.slots.length === 8,
-    `Hours: ${scheduleInfo.workingHoursFormatted}, Slots: ${scheduleInfo.slots.join(', ')}`
+    '1a. Dr. James Wilson Working Hours (10:00 AM - 02:00 PM)',
+    schedWilson.workingHoursFormatted === '10:00 AM - 02:00 PM' && schedWilson.slots.length === 8 && schedWilson.workingDays.length === 5,
+    `Hours: ${schedWilson.workingHoursFormatted}, Days: ${schedWilson.workingDays.join(', ')}`
+  );
+
+  const schedSharma = schedulingService.getDoctorScheduleInfo(mockDrSharma);
+  recordTest(
+    '1b. Dr. Priya Sharma Working Hours (11:00 AM - 04:00 PM)',
+    schedSharma.workingHoursFormatted === '11:00 AM - 04:00 PM' && schedSharma.slots.length === 10 && schedSharma.workingDays.includes('Saturday'),
+    `Hours: ${schedSharma.workingHoursFormatted}, Days: ${schedSharma.workingDays.join(', ')}`
+  );
+
+  const schedChen = schedulingService.getDoctorScheduleInfo(mockDrChen);
+  recordTest(
+    '1c. Dr. Robert Chen Working Hours (09:00 AM - 01:00 PM)',
+    schedChen.workingHoursFormatted === '09:00 AM - 01:00 PM' && schedChen.slots.length === 8 && schedChen.workingDays.includes('Saturday'),
+    `Hours: ${schedChen.workingHoursFormatted}, Days: ${schedChen.workingDays.join(', ')}`
+  );
+
+  const schedJenkins = schedulingService.getDoctorScheduleInfo(mockDrJenkins);
+  recordTest(
+    '1d. Dr. Sarah Jenkins Working Hours (02:00 PM - 07:00 PM)',
+    schedJenkins.workingHoursFormatted === '02:00 PM - 07:00 PM' && schedJenkins.slots.length === 10 && schedJenkins.workingDays.length === 5,
+    `Hours: ${schedJenkins.workingHoursFormatted}, Days: ${schedJenkins.workingDays.join(', ')}`
+  );
+
+  // Test off-hours allocations for each doctor
+  const mockIsNone = async () => false;
+
+  // Dr. Sharma: off-hours request on Monday (her day off) -> rolls to Tuesday 11:00 AM
+  const resSharmaMon = await schedulingService.allocateAppointmentSlot(mockDrSharma, '2026-10-05', '18:00', mockIsNone);
+  recordTest(
+    '1e. Dr. Priya Sharma off-hours on non-working Monday -> rolls to Tuesday 11:00 AM',
+    resSharmaMon.scheduledDayName === 'Tuesday' && resSharmaMon.scheduledTime === '11:00',
+    `Scheduled: ${resSharmaMon.scheduledDayName} at ${resSharmaMon.scheduledTime12h}`
+  );
+
+  // Dr. Chen: evening request at 8:00 PM -> allocated nearest slot on Monday (12:30 PM)
+  const resChenEve = await schedulingService.allocateAppointmentSlot(mockDrChen, '2026-10-05', '20:00', mockIsNone);
+  recordTest(
+    '1f. Dr. Robert Chen evening request (8:00 PM) -> allocated nearest slot 12:30 PM',
+    resChenEve.scheduledTime === '12:30' && resChenEve.scheduledTime12h === '12:30 PM',
+    `Scheduled: ${resChenEve.scheduledTime12h}`
+  );
+
+  // Dr. Jenkins: morning request at 8:00 AM -> allocated nearest slot on Monday (02:00 PM)
+  const resJenkinsMorn = await schedulingService.allocateAppointmentSlot(mockDrJenkins, '2026-10-05', '08:00', mockIsNone);
+  recordTest(
+    '1g. Dr. Sarah Jenkins early morning request (8:00 AM) -> allocated nearest slot 02:00 PM',
+    resJenkinsMorn.scheduledTime === '14:00' && resJenkinsMorn.scheduledTime12h === '02:00 PM',
+    `Scheduled: ${resJenkinsMorn.scheduledTime12h}`
   );
 
   // Scenario A: Patient requests Monday at 6:00 PM (18:00) outside working hours

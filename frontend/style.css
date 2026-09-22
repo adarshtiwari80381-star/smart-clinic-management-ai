@@ -793,6 +793,47 @@ body {
   gap: 10px;
 }
 
+.doctor-schedule-block {
+  display: block !important;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 8px;
+}
+
+.doctor-schedule-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 3px;
+}
+
+.doctor-schedule-label.timing-label {
+  margin-top: 8px;
+  color: #38bdf8;
+}
+
+.doctor-schedule-days {
+  font-size: 0.84rem;
+  color: #f1f5f9;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.doctor-schedule-hours {
+  font-size: 0.92rem;
+  color: #38bdf8;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.doctor-booking-schedule-banner {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
 .doctor-footer {
   display: flex;
   justify-content: space-between;
